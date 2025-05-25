@@ -11,7 +11,7 @@
 #SBATCH --output=output.log
 #SBATCH --error=error.log
 
-set -e  # 遇到错误立即退出
+set -e
 
 echo "🔍 任务开始，当前目录: $(pwd)" > output.log
 cd "$SLURM_SUBMIT_DIR" || { echo "❌ 目录不存在，退出"; exit 1; }
@@ -39,6 +39,19 @@ fi
 module load cuda/11.8 || true
 echo "✅ 尝试加载 CUDA 模块" >> output.log
 
+# 自动设置 CUDA_HOME（确保找到 nvcc）
+if command -v nvcc &> /dev/null; then
+    export CUDA_HOME=$(dirname $(dirname $(which nvcc)))
+    echo "✅ 检测到 nvcc，CUDA_HOME 设置为: $CUDA_HOME" >> output.log
+else
+    echo "❌ 未找到 nvcc，请确认 CUDA 模块是否正确加载！" >> output.log
+    exit 1
+fi
+
+# 环境路径配置
+export PATH=$CUDA_HOME/bin:$CONDA_PREFIX/bin:$PATH
+export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
+
 # === 安装编译工具链 ===
 conda install -c conda-forge gcc gxx_linux-64 libstdcxx-ng cmake ninja -y >> output.log 2>> error.log
 
@@ -50,11 +63,6 @@ if ! command -v g++ &> /dev/null; then
 else
     echo "✅ 已存在 g++，跳过软链接创建" >> output.log
 fi
-
-# === 环境变量设置 ===
-export CUDA_HOME=/usr/local/cuda
-export PATH=$CONDA_PREFIX/bin:$CUDA_HOME/bin:$PATH
-export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 
 # 检查 g++
 echo "🔍 g++ 路径: $(which g++)" >> output.log
@@ -70,6 +78,12 @@ pip install --no-cache-dir --force-reinstall \
   --index-url https://download.pytorch.org/whl/cu118 \
   --extra-index-url https://pypi.org/simple || { echo "❌ 安装 PyTorch 失败"; exit 1; }
 
+# 验证 PyTorch 是否安装成功
+python -c 'import torch; print("Torch version:", torch.__version__, "CUDA:", torch.cuda.is_available(), "Device:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "N/A")' >> output.log 2>> error.log || {
+    echo "❌ PyTorch 导入失败，退出..." >> output.log
+    exit 1
+}
+
 # === 安装 AutoGPTQ 和插件 ===
 pip install -e AutoGPTQ || { echo "❌ 安装 AutoGPTQ 失败" >> output.log; exit 1; }
 pip install -e AutoAWQ || { echo "❌ 安装 AutoAWQ 失败" >> output.log; exit 1; }
@@ -77,6 +91,8 @@ pip install -e AutoAWQ || { echo "❌ 安装 AutoAWQ 失败" >> output.log; exit
 # === 安装当前项目本身 ===
 pip install -e . || { echo "❌ 安装当前项目失败" >> output.log; exit 1; }
 
+# === CUDA 扩展检查 ===
+python -c "from auto_gptq.utils.import_utils import is_cuda_extension_available as check; print('✅ AutoGPTQ + CUDA Extension OK' if check() else '❌ CUDA Extension Missing')" >> output.log 2>> error.log
 
 # === 模型路径检查 ===
 MODEL_DIR="models/deepseek-math-7b-instruct"
