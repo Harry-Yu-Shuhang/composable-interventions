@@ -65,7 +65,11 @@ echo "📦 安装 Python 依赖..." >> output.log
 pip install pandas gekko numpy transformers accelerate >> output.log 2>> error.log
 
 # === 安装 PyTorch（必须在 AutoGPTQ 前） ===
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 >> output.log 2>> error.log
+pip install torch==2.3.0+cu118 torchvision==0.18.0+cu118 torchaudio==2.3.0+cu118 \
+  --index-url https://download.pytorch.org/whl/cu118 >> output.log 2>> error.log
+  
+# === 验证 PyTorch 可用性 ===
+python -c "import torch; print(f'Torch version: {torch.__version__}, CUDA available: {torch.cuda.is_available()}')" >> output.log 2>> error.log
 
 # === 安装项目和插件 ===
 pip install -e . >> output.log 2>> error.log
