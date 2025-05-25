@@ -19,22 +19,6 @@ echo "📌 进入目录: $SLURM_SUBMIT_DIR" >> output.log
 
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
-# === 加载模块系统和 CUDA/GCC ===
-if [ -f /etc/profile.d/modules.sh ]; then
-    source /etc/profile.d/modules.sh
-fi
-
-module load gcc/12.2.0
-module load cuda/11.8
-echo "✅ 加载 CUDA 和 GCC" >> output.log
-
-# === 检查 g++ 可用性 ===
-export CXX=$(which g++) || { echo "❌ g++ 未找到，GCC 模块未正确加载" >> output.log; exit 1; }
-
-# === 检查 GPU 信息 ===
-echo "🔍 GPU 设备信息：" >> output.log
-nvidia-smi >> output.log 2>> error.log || echo "⚠️ GPU 检测失败" >> output.log
-
 # === Conda 环境处理（强制删除重建）===
 echo "🔁 重建 conda 环境: lm-compose" >> output.log
 source ~/.bashrc
@@ -45,25 +29,25 @@ if conda info --envs | grep -q "lm-compose"; then
     conda remove -n lm-compose --all -y >> output.log 2>> error.log
 fi
 
-# 创建新环境
-echo "⚙️ 创建 conda 环境 'lm-compose'..." >> output.log
+# 创建新环境并安装 gcc
+echo "⚙️ 创建 conda 环境 'lm-compose' 并安装 gcc..." >> output.log
 conda create -n lm-compose python=3.11 -y >> output.log 2>> error.log
-
-echo "🚀 激活 conda 环境" >> output.log
 conda activate lm-compose || { echo "❌ 激活失败" >> output.log; exit 1; }
 
+# 安装编译工具链
+conda install -c conda-forge gcc gxx_linux-64 libstdcxx-ng cmake ninja -y >> output.log 2>> error.log
 
 # === 环境变量设置 ===
 export CUDA_HOME=/usr/local/cuda
 export PATH=$CUDA_HOME/bin:$PATH
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 
+# 检查 g++ 是否可用
+echo "🔍 g++ 路径: $(which g++)" >> output.log
+g++ --version >> output.log 2>> error.log
+
 # === 安装依赖 ===
-echo "📦 安装依赖（conda 和 pip）..." >> output.log
-conda install -c conda-forge libstdcxx-ng gxx_linux-64 cmake ninja -y >> output.log 2>> error.log
-
-which pip || { echo "❌ pip 不可用，退出" >> output.log; exit 1; }
-
+echo "📦 安装 Python 依赖..." >> output.log
 pip install pandas gekko numpy transformers accelerate >> output.log 2>> error.log
 
 # === 安装项目和插件 ===
