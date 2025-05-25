@@ -70,12 +70,6 @@ pip install --no-cache-dir --force-reinstall \
   --index-url https://download.pytorch.org/whl/cu118 \
   --extra-index-url https://pypi.org/simple || { echo "❌ 安装 PyTorch 失败"; exit 1; }
 
-# 验证 PyTorch 是否安装成功
-python -c 'import torch; print(f"Torch version: {torch.__version__}, CUDA: {torch.cuda.is_available()}, Device: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"N/A\"}")' >> output.log 2>> error.log || {
-    echo "❌ PyTorch 导入失败，退出..." >> output.log
-    exit 1
-}
-
 # === 安装 AutoGPTQ 和插件 ===
 pip install -e AutoGPTQ || { echo "❌ 安装 AutoGPTQ 失败" >> output.log; exit 1; }
 pip install -e AutoAWQ || { echo "❌ 安装 AutoAWQ 失败" >> output.log; exit 1; }
