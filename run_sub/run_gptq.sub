@@ -64,6 +64,9 @@ g++ --version >> output.log 2>> error.log
 echo "📦 安装 Python 依赖..." >> output.log
 pip install pandas gekko numpy transformers accelerate >> output.log 2>> error.log
 
+# === 安装 PyTorch（必须在 AutoGPTQ 前） ===
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 >> output.log 2>> error.log
+
 # === 安装项目和插件 ===
 pip install -e . >> output.log 2>> error.log
 pip install -e AutoGPTQ --config-settings editable_mode=compat || { echo "❌ 安装 AutoGPTQ 失败" >> output.log; exit 1; }
