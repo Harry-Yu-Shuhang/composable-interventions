@@ -1,0 +1,53 @@
+# === Conda 环境处理 ===
+echo "🔁 重建 conda 环境: lm-compose" >> output.log
+source /mnt/fast/nobackup/users/ly0008/miniconda3/etc/profile.d/conda.sh
+eval "$(conda shell.bash hook)"
+
+# Debug: 当前用户和路径
+echo "👤 当前用户: $(whoami)" >> output.log
+echo "📂 当前目录内容:" >> output.log
+ls -alh "$SLURM_SUBMIT_DIR" >> output.log
+
+# Debug: module 命令是否可用
+if [ -f /etc/profile.d/modules.sh ]; then
+    echo "📦 modules.sh 存在，尝试 source ..." >> output.log
+    source /etc/profile.d/modules.sh || echo "⚠️ source modules.sh 失败" >> output.log
+else
+    echo "⚠️ modules.sh 不存在，跳过 module 加载" >> output.log
+fi
+
+# 尝试加载 CUDA module
+module load cuda/11.8 && echo "✅ 成功加载 CUDA/11.8 模块" >> output.log || echo "❌ module load cuda/11.8 失败" >> output.log
+
+# Debug: 检查 nvcc 是否存在
+echo "🔍 检查 nvcc 路径..." >> output.log
+which nvcc >> output.log 2>> error.log || echo "❌ nvcc 不在 PATH 中" >> output.log
+
+# Debug: 显示 /usr/local 目录
+echo "📁 /usr/local 内容:" >> output.log
+ls -l /usr/local >> output.log
+
+# Debug: 显示 /usr/local/cuda* 目录
+echo "📁 /usr/local/cuda* 内容:" >> output.log
+ls -ld /usr/local/cuda* >> output.log || echo "⚠️ 没有找到 /usr/local/cuda*" >> output.log
+
+# Debug: 尝试找到 nvcc 实际位置
+echo "🔍 搜索 nvcc ..." >> output.log
+find /usr/local -name nvcc 2>/dev/null >> output.log || echo "❌ find nvcc 未找到" >> output.log
+
+# === CUDA_HOME 设置尝试（保留原逻辑）===
+if command -v nvcc &> /dev/null; then
+    export CUDA_HOME=$(dirname $(dirname $(which nvcc)))
+    echo "✅ CUDA_HOME 自动设置为: $CUDA_HOME" >> output.log
+elif [ -x /usr/local/cuda-11.8/bin/nvcc ]; then
+    export CUDA_HOME=/usr/local/cuda-11.8
+    echo "⚠️ fallback: CUDA_HOME 设置为: $CUDA_HOME" >> output.log
+else
+    echo "❌ 未找到 nvcc，设置 CUDA_HOME 失败！继续执行，但可能后续失败" >> output.log
+fi
+
+# Debug: 当前环境变量
+echo "📌 当前 PATH:" >> output.log
+echo "$PATH" >> output.log
+echo "📌 当前 LD_LIBRARY_PATH:" >> output.log
+echo "$LD_LIBRARY_PATH" >> output.log
