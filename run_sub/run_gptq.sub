@@ -21,7 +21,7 @@ export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
 # === Conda 环境处理（强制删除重建）===
 echo "🔁 重建 conda 环境: lm-compose" >> output.log
-source ~/.bashrc
+source /mnt/fast/nobackup/users/ly0008/miniconda3/etc/profile.d/conda.sh
 
 # 如果环境已存在则删除
 if conda info --envs | grep -q "lm-compose"; then
@@ -46,7 +46,7 @@ export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 echo "🔍 g++ 路径: $(which g++)" >> output.log
 g++ --version >> output.log 2>> error.log
 
-# === 安装依赖 ===
+# === 安装 Python 依赖 ===
 echo "📦 安装 Python 依赖..." >> output.log
 pip install pandas gekko numpy transformers accelerate >> output.log 2>> error.log
 
