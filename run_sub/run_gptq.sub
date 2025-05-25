@@ -60,27 +60,41 @@ export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 echo "🔍 g++ 路径: $(which g++)" >> output.log
 g++ --version >> output.log 2>> error.log
 
-# === 安装 Python 依赖 ===
+# === 安装 Python 通用依赖 ===
 echo "📦 安装通用 Python 包..." >> output.log
 pip install pandas gekko numpy transformers accelerate >> output.log 2>> error.log
 
-# === 安装 PyTorch（必须在 AutoGPTQ 前） ===
+# === 安装 PyTorch（必须先装）===
 echo "📦 安装 PyTorch 2.3.0 + CUDA 11.8..." >> output.log
-pip install torch==2.3.0+cu118 torchvision==0.18.0+cu118 torchaudio==2.3.0+cu118 \
-  --index-url https://download.pytorch.org/whl/cu118 >> output.log 2>> error.log
+pip install torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 \
+  --index-url https://download.pytorch.org/whl/cu118 \
+  --extra-index-url https://pypi.org/simple >> output.log 2>> error.log
 
-# 验证 PyTorch 可用性
+# 验证 PyTorch 是否安装成功
 echo "🔍 验证 PyTorch 安装..." >> output.log
-python -c "import torch; print(f'Torch version: {torch.__version__}, CUDA available: {torch.cuda.is_available()}')" >> output.log 2>> error.log || {
+python -c "import torch; print(f'Torch version: {torch.__version__}, CUDA: {torch.cuda.is_available()}, Device: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'N/A'}')" >> output.log 2>> error.log || {
     echo "❌ PyTorch 导入失败，退出..." >> output.log
     exit 1
 }
 
-# === 安装项目和插件 ===
-echo "📦 安装 AutoGPTQ 及其依赖..." >> output.log
-pip install -e . >> output.log 2>> error.log
-pip install -e AutoGPTQ --config-settings editable_mode=compat || { echo "❌ 安装 AutoGPTQ 失败" >> output.log; exit 1; }
-pip install -e AutoAWQ || { echo "❌ 安装 AutoAWQ 失败" >> output.log; exit 1; }
+# === 安装 AutoGPTQ 和插件 ===
+echo "📦 安装 AutoGPTQ 插件..." >> output.log
+pip install -e AutoGPTQ --config-settings editable_mode=compat >> output.log 2>> error.log || {
+    echo "❌ 安装 AutoGPTQ 失败" >> output.log
+    exit 1
+}
+
+echo "📦 安装 AutoAWQ 插件..." >> output.log
+pip install -e AutoAWQ >> output.log 2>> error.log || {
+    echo "❌ 安装 AutoAWQ 失败" >> output.log
+    exit 1
+}
+
+# === 安装当前项目本身（最后安装，确保已安装依赖）===
+pip install -e . >> output.log 2>> error.log || {
+    echo "❌ 安装当前项目失败" >> output.log
+    exit 1
+}
 
 # === CUDA 扩展检查 ===
 python -c "from auto_gptq.utils.import_utils import is_cuda_extension_available as check; print('✅ AutoGPTQ + CUDA Extension OK' if check() else '❌ CUDA Extension Missing')" >> output.log 2>> error.log
