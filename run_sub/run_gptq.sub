@@ -17,10 +17,32 @@ echo "🔍 任务开始，当前目录: $(pwd)" > output.log
 cd "$SLURM_SUBMIT_DIR" || { echo "❌ 目录不存在，退出"; exit 1; }
 echo "📌 进入目录: $SLURM_SUBMIT_DIR" >> output.log
 
-export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
+# ========== DEBUG 输出 ========== #
+echo "👤 当前用户: $(whoami)" >> output.log
+echo "📂 当前目录内容:" >> output.log
+ls -alh "$SLURM_SUBMIT_DIR" >> output.log
 
-# === Conda 初始化并重建环境 ===
-echo "🔁 重建 conda 环境: lm-compose" >> output.log
+echo "🧪 检查 module 命令..." >> output.log
+if [ -f /etc/profile.d/modules.sh ]; then
+    source /etc/profile.d/modules.sh || echo "⚠️ source modules.sh 失败" >> output.log
+else
+    echo "❌ /etc/profile.d/modules.sh 不存在" >> output.log
+fi
+
+echo "📥 加载 CUDA 模块..." >> output.log
+module load cuda/11.8 && echo "✅ CUDA 模块加载成功" >> output.log || echo "⚠️ CUDA 模块加载失败" >> output.log
+
+echo "🔍 nvcc 路径:" >> output.log
+which nvcc >> output.log 2>> error.log || echo "❌ nvcc 未找到" >> output.log
+
+echo "📁 /usr/local/cuda* 内容:" >> output.log
+ls -ld /usr/local/cuda* >> output.log || echo "⚠️ /usr/local/cuda* 不存在" >> output.log
+
+echo "📥 尝试执行 nvidia-smi:" >> output.log
+nvidia-smi >> output.log 2>> error.log || echo "❌ nvidia-smi 失败" >> output.log
+
+# ========== Conda 环境初始化 ==========
+echo "🔁 Conda 初始化并重建环境: lm-compose" >> output.log
 source /mnt/fast/nobackup/users/ly0008/miniconda3/etc/profile.d/conda.sh
 eval "$(conda shell.bash hook)"
 
@@ -29,92 +51,72 @@ if conda info --envs | grep -q "lm-compose"; then
 fi
 
 conda create -n lm-compose python=3.11 -y >> output.log 2>> error.log
-conda activate lm-compose || { echo "❌ 激活 conda 环境失败" >> output.log; exit 1; }
+conda activate lm-compose || { echo "❌ conda 激活失败" >> output.log; exit 1; }
 
-# === 加载 CUDA 模块（如存在）===
-if [ -f /etc/profile.d/modules.sh ]; then
-    source /etc/profile.d/modules.sh || true
-fi
-module load cuda/11.8 || true
-echo "✅ 尝试加载 CUDA 模块" >> output.log
-
-# === 自动设置 CUDA_HOME ===
+# ========== CUDA_HOME 设置 ==========
 if command -v nvcc &> /dev/null; then
     export CUDA_HOME=$(dirname $(dirname $(which nvcc)))
     echo "✅ CUDA_HOME 自动设置为: $CUDA_HOME" >> output.log
 elif [ -x /usr/local/cuda-11.8/bin/nvcc ]; then
     export CUDA_HOME=/usr/local/cuda-11.8
-    export PATH=$CUDA_HOME/bin:$PATH
-    export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
-    echo "⚠️ 手动 fallback 设置 CUDA_HOME 为: $CUDA_HOME" >> output.log
+    echo "⚠️ fallback: CUDA_HOME 设置为: $CUDA_HOME" >> output.log
 else
-    echo "❌ 未找到 nvcc，且默认路径无效，退出..." >> output.log
+    echo "❌ CUDA_HOME 设置失败（nvcc 不存在）" >> output.log
     exit 1
 fi
 
-# === 环境变量配置 ===
 export PATH=$CUDA_HOME/bin:$CONDA_PREFIX/bin:$PATH
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
+export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
-# === 安装编译工具链 ===
+# ========== 环境 Debug ==========
+echo "📌 PATH: $PATH" >> output.log
+echo "📌 LD_LIBRARY_PATH: $LD_LIBRARY_PATH" >> output.log
+echo "📌 Python: $(which python)" >> output.log
+python --version >> output.log
+
+# ========== 安装依赖 ==========
 conda install -c conda-forge gcc gxx_linux-64 libstdcxx-ng cmake ninja -y >> output.log 2>> error.log
 
-# === 设置 g++（避免重复）===
 export CXX=$(which x86_64-conda-linux-gnu-g++)
 if ! command -v g++ &> /dev/null; then
     ln -sf "$CXX" "$CONDA_PREFIX/bin/g++"
-    echo "🔗 已创建 g++ 软链接到 $CXX" >> output.log
+    echo "🔗 g++ 软链接已创建: $CXX" >> output.log
 else
-    echo "✅ 已存在 g++，跳过软链接创建" >> output.log
+    echo "✅ g++ 已存在: $(which g++)" >> output.log
 fi
-
-echo "🔍 g++ 路径: $(which g++)" >> output.log
 g++ --version >> output.log 2>> error.log
 
-# === 安装通用 Python 包 ===
 pip install pandas gekko numpy transformers accelerate >> output.log 2>> error.log
 
-# === 安装 PyTorch（必须在 AutoGPTQ 前）===
-echo "📦 安装 PyTorch 2.3.0 + CUDA 11.8..." >> output.log
+# ========== 安装 PyTorch ==========
+echo "📦 安装 PyTorch 2.3.0 + CUDA 11.8" >> output.log
 pip install --no-cache-dir --force-reinstall \
   torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 \
   --index-url https://download.pytorch.org/whl/cu118 \
   --extra-index-url https://pypi.org/simple >> output.log 2>> error.log
 
-# === 检查 nvcc 可用性（AutoGPTQ 编译必须）===
-if ! command -v nvcc &> /dev/null; then
-    echo "❌ nvcc 不存在，AutoGPTQ 编译会失败！" >> output.log
-    exit 1
-else
-    echo "✅ nvcc 路径: $(which nvcc)" >> output.log
-fi
-
-# === 安装 AutoGPTQ、AutoAWQ ===
-pip install -e AutoGPTQ >> output.log 2>> error.log || {
-    echo "❌ 安装 AutoGPTQ 失败" >> output.log
-    exit 1
-}
-pip install -e AutoAWQ >> output.log 2>> error.log || {
-    echo "❌ 安装 AutoAWQ 失败" >> output.log
+# 检查 torch + CUDA
+python -c 'import torch; print("Torch:", torch.__version__, "CUDA OK:", torch.cuda.is_available(), "Device:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "N/A")' >> output.log 2>> error.log || {
+    echo "❌ PyTorch 导入失败，退出" >> output.log
     exit 1
 }
 
-# === 安装当前项目本身 ===
-pip install -e . >> output.log 2>> error.log || {
-    echo "❌ 安装当前项目失败" >> output.log
-    exit 1
-}
+# ========== 安装 AutoGPTQ 和项目 ==========
+pip install -e AutoGPTQ >> output.log 2>> error.log || { echo "❌ 安装 AutoGPTQ 失败" >> output.log; exit 1; }
+pip install -e AutoAWQ >> output.log 2>> error.log || { echo "❌ 安装 AutoAWQ 失败" >> output.log; exit 1; }
+pip install -e . >> output.log 2>> error.log || { echo "❌ 安装当前项目失败" >> output.log; exit 1; }
 
-# === 模型路径检查 ===
+# ========== 模型检查 ==========
 MODEL_DIR="models/deepseek-math-7b-instruct"
 if [ ! -d "$MODEL_DIR" ]; then
     echo "❌ 模型目录不存在: $MODEL_DIR" >> output.log
-    echo "📥 请先运行 huggingface-cli 下载模型到该目录" >> output.log
+    echo "📥 请先运行 huggingface-cli 下载模型" >> output.log
     exit 1
 fi
 
-# === 执行 GPTQ 压缩 ===
-echo "📦 开始执行 GPTQ 压缩任务..." >> output.log
+# ========== GPTQ 压缩 ==========
+echo "📦 开始 GPTQ 压缩任务..." >> output.log
 python main.py \
     model_name=$MODEL_DIR \
     interventions=[compress] \
