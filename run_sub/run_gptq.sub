@@ -62,14 +62,6 @@ nvcc --version >> output.log 2>> error.log || {
     exit 1
 }
 
-# ========== 环境变量 Debug ==========
-echo "📌 PATH: $PATH" >> output.log
-echo "📌 LD_LIBRARY_PATH: $LD_LIBRARY_PATH" >> output.log
-echo "📌 nvcc 路径: $(which nvcc)" >> output.log
-nvcc --version >> output.log 2>> error.log || echo "⚠️ nvcc 无法执行" >> output.log
-echo "📌 Python: $(which python)" >> output.log
-python --version >> output.log
-
 # ========== 安装依赖 ==========
 conda install -c conda-forge gcc gxx_linux-64 libstdcxx-ng cmake ninja -y >> output.log 2>> error.log
 
