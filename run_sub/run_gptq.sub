@@ -29,19 +29,27 @@ fi
 conda create -n lm-compose python=3.11 -y >> output.log 2>> error.log
 conda activate lm-compose || { echo "❌ conda 激活失败" >> output.log; exit 1; }
 
-# ========== CUDA 设置 ==========
-echo "🧪 检查并加载 CUDA 模块..." >> output.log
+# ========== CUDA 模块加载（必须放最前）==========
+echo "🧪 初始化 CUDA 模块..." >> output.log
+module purge
 if [ -f /etc/profile.d/modules.sh ]; then
     source /etc/profile.d/modules.sh || echo "⚠️ source modules.sh 失败" >> output.log
 fi
 module load cuda/11.8 && echo "✅ CUDA 模块加载成功" >> output.log || echo "⚠️ CUDA 模块加载失败" >> output.log
 
-# ========== 强制设置 CUDA_HOME（已知路径）==========
+# ========== CUDA_HOME 强制设置 ==========
 export CUDA_HOME=/vol/cuda/11.8
 export PATH=$CUDA_HOME/bin:$CONDA_PREFIX/bin:$PATH
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 echo "✅ 强制设置 CUDA_HOME 为: $CUDA_HOME" >> output.log
+
+# ========== Debug CUDA ==========
+echo "📌 PATH: $PATH" >> output.log
+echo "📌 LD_LIBRARY_PATH: $LD_LIBRARY_PATH" >> output.log
+echo "📌 nvcc 路径: $(which nvcc)" >> output.log
+ls -l $(which nvcc) >> output.log 2>> error.log || echo "⚠️ nvcc 路径无效" >> output.log
+nvcc --version >> output.log 2>> error.log || echo "⚠️ nvcc 无法执行" >> output.log
 
 # ========== 环境变量 Debug ==========
 echo "📌 PATH: $PATH" >> output.log
