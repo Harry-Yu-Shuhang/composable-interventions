@@ -1,5 +1,4 @@
 #!/bin/bash
-
 #SBATCH --partition=3090_risk
 #SBATCH --nodelist=aisurrey15
 #SBATCH --job-name=gptq_deepseek
@@ -12,29 +11,33 @@
 #SBATCH --output=output.log
 #SBATCH --error=error.log
 
+set -e  # 遇到错误立即退出
+
 echo "🔍 任务开始，当前目录: $(pwd)" > output.log
 cd "$SLURM_SUBMIT_DIR" || { echo "❌ 目录不存在，退出"; exit 1; }
 echo "📌 进入目录: $SLURM_SUBMIT_DIR" >> output.log
 
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
-# === 加载模块系统和 CUDA ===
+# === 加载模块系统和 CUDA/GCC ===
 if [ -f /etc/profile.d/modules.sh ]; then
     source /etc/profile.d/modules.sh
 fi
 
-module load gcc/12.2.0         # 保证 libstdc++ >= GLIBCXX_3.4.29
-module load cuda/11.8          # 使用推荐 CUDA 版本
+module load gcc/12.2.0
+module load cuda/11.8
 echo "✅ 加载 CUDA 和 GCC" >> output.log
 
-# === 检查 GPU ===
+# === 检查 g++ 可用性 ===
+export CXX=$(which g++) || { echo "❌ g++ 未找到，GCC 模块未正确加载" >> output.log; exit 1; }
+
+# === 检查 GPU 信息 ===
 echo "🔍 GPU 设备信息：" >> output.log
 nvidia-smi >> output.log 2>> error.log || echo "⚠️ GPU 检测失败" >> output.log
 
-# === Conda 环境判断 ===
+# === Conda 环境处理 ===
 echo "🔍 检查 conda 环境: lm-compose" >> output.log
 source ~/.bashrc
-
 if ! conda info --envs | grep -q "lm-compose"; then
     echo "⚙️ 创建 conda 环境 'lm-compose'..." >> output.log
     conda create -n lm-compose python=3.11 -y >> output.log 2>> error.log
@@ -43,25 +46,28 @@ fi
 echo "🚀 激活 conda 环境" >> output.log
 conda activate lm-compose || { echo "❌ 激活失败" >> output.log; exit 1; }
 
-# === 设置路径变量（重要）===
+# === 环境变量设置 ===
 export CUDA_HOME=/usr/local/cuda
 export PATH=$CUDA_HOME/bin:$PATH
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 
-# === 安装依赖（系统级 + pip 依赖）===
-echo "📦 安装依赖..." >> output.log
+# === 安装依赖 ===
+echo "📦 安装依赖（conda 和 pip）..." >> output.log
 conda install -c conda-forge libstdcxx-ng gxx_linux-64 cmake ninja -y >> output.log 2>> error.log
+
+which pip || { echo "❌ pip 不可用，退出" >> output.log; exit 1; }
+
 pip install pandas gekko numpy transformers accelerate >> output.log 2>> error.log
 
 # === 安装项目和插件 ===
 pip install -e . >> output.log 2>> error.log
-pip install -e AutoGPTQ >> output.log 2>> error.log
-pip install -e AutoAWQ >> output.log 2>> error.log
+pip install -e AutoGPTQ || { echo "❌ 安装 AutoGPTQ 失败" >> output.log; exit 1; }
+pip install -e AutoAWQ || { echo "❌ 安装 AutoAWQ 失败" >> output.log; exit 1; }
 
-# === 检查 AutoGPTQ 是否包含 CUDA 扩展 ===
-python -c "from auto_gptq.utils.import_utils import is_cuda_extension_available as check; print('✅ AutoGPTQ + CUDA Extension OK' if check() else '❌ CUDA Extension Missing')" >> output.log 2>> error.log || { echo '❌ AutoGPTQ 安装失败'; exit 1; }
+# === CUDA 扩展检查 ===
+python -c "from auto_gptq.utils.import_utils import is_cuda_extension_available as check; print('✅ AutoGPTQ + CUDA Extension OK' if check() else '❌ CUDA Extension Missing')" >> output.log 2>> error.log
 
-# === 检查模型路径 ===
+# === 模型检查 ===
 MODEL_DIR="models/deepseek-math-7b-instruct"
 if [ ! -d "$MODEL_DIR" ]; then
     echo "❌ 模型目录不存在: $MODEL_DIR" >> output.log
@@ -78,8 +84,4 @@ python main.py \
     wbits=4 \
     output_dir=compressed_models/deepseek-math-7b-gptq >> output.log 2>> error.log
 
-if [ $? -eq 0 ]; then
-    echo "✅ 所有任务完成" >> output.log
-else
-    echo "❌ 任务执行中断，请检查 error.log" >> output.log
-fi
+echo "✅ 所有任务完成" >> output.log
