@@ -30,21 +30,25 @@ fi
 
 echo "⚙️ 创建 conda 环境 'lm-compose'..." >> output.log
 conda create -n lm-compose python=3.11 -y >> output.log 2>> error.log
+eval "$(conda shell.bash hook)"
 conda activate lm-compose || { echo "❌ 激活 conda 环境失败" >> output.log; exit 1; }
 
-# === 加载 CUDA 模块 ===
+# 尝试 module 加载 CUDA
 if [ -f /etc/profile.d/modules.sh ]; then
     source /etc/profile.d/modules.sh || true
 fi
 module load cuda/11.8 || true
 echo "✅ 尝试加载 CUDA 模块" >> output.log
 
-# 自动设置 CUDA_HOME（确保找到 nvcc）
+# 自动或手动设置 CUDA_HOME
 if command -v nvcc &> /dev/null; then
     export CUDA_HOME=$(dirname $(dirname $(which nvcc)))
-    echo "✅ 检测到 nvcc，CUDA_HOME 设置为: $CUDA_HOME" >> output.log
+    echo "✅ CUDA_HOME 自动设置为: $CUDA_HOME" >> output.log
+elif [ -d /usr/local/cuda-11.8 ]; then
+    export CUDA_HOME=/usr/local/cuda-11.8
+    echo "⚠️ 手动 fallback 设置 CUDA_HOME 为: $CUDA_HOME" >> output.log
 else
-    echo "❌ 未找到 nvcc，请确认 CUDA 模块是否正确加载！" >> output.log
+    echo "❌ 未找到 nvcc，且默认路径无效，退出..." >> output.log
     exit 1
 fi
 
@@ -78,11 +82,13 @@ pip install --no-cache-dir --force-reinstall \
   --index-url https://download.pytorch.org/whl/cu118 \
   --extra-index-url https://pypi.org/simple || { echo "❌ 安装 PyTorch 失败"; exit 1; }
 
-# 验证 PyTorch 是否安装成功
-python -c 'import torch; print("Torch version:", torch.__version__, "CUDA:", torch.cuda.is_available(), "Device:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "N/A")' >> output.log 2>> error.log || {
-    echo "❌ PyTorch 导入失败，退出..." >> output.log
+if ! command -v nvcc &> /dev/null; then
+    echo "❌ nvcc 不存在，AutoGPTQ 编译会失败！" >> output.log
     exit 1
-}
+else
+    echo "✅ nvcc 路径: $(which nvcc)" >> output.log
+fi
+
 
 # === 安装 AutoGPTQ 和插件 ===
 pip install -e AutoGPTQ || { echo "❌ 安装 AutoGPTQ 失败" >> output.log; exit 1; }
@@ -90,9 +96,6 @@ pip install -e AutoAWQ || { echo "❌ 安装 AutoAWQ 失败" >> output.log; exit
 
 # === 安装当前项目本身 ===
 pip install -e . || { echo "❌ 安装当前项目失败" >> output.log; exit 1; }
-
-# === CUDA 扩展检查 ===
-python -c "from auto_gptq.utils.import_utils import is_cuda_extension_available as check; print('✅ AutoGPTQ + CUDA Extension OK' if check() else '❌ CUDA Extension Missing')" >> output.log 2>> error.log
 
 # === 模型路径检查 ===
 MODEL_DIR="models/deepseek-math-7b-instruct"
