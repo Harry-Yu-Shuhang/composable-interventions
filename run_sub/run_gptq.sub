@@ -23,23 +23,33 @@ export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 echo "🔁 重建 conda 环境: lm-compose" >> output.log
 source /mnt/fast/nobackup/users/ly0008/miniconda3/etc/profile.d/conda.sh
 
-# 如果环境已存在则删除
 if conda info --envs | grep -q "lm-compose"; then
     echo "🧹 删除已有环境 'lm-compose'..." >> output.log
     conda remove -n lm-compose --all -y >> output.log 2>> error.log
 fi
 
-# 创建新环境并安装 gcc
 echo "⚙️ 创建 conda 环境 'lm-compose' 并安装 gcc..." >> output.log
 conda create -n lm-compose python=3.11 -y >> output.log 2>> error.log
 conda activate lm-compose || { echo "❌ 激活失败" >> output.log; exit 1; }
 
+# 加载 CUDA 模块
+if [ -f /etc/profile.d/modules.sh ]; then
+    source /etc/profile.d/modules.sh
+fi
+module load cuda/11.8
+echo "✅ 已加载 CUDA 模块" >> output.log
+
 # 安装编译工具链
 conda install -c conda-forge gcc gxx_linux-64 libstdcxx-ng cmake ninja -y >> output.log 2>> error.log
 
-# 设置 g++ 环境变量和软链接
+# 设置 g++ 环境变量和软链接（避免重复）
 export CXX=$(which x86_64-conda-linux-gnu-g++)
-ln -sf $(which x86_64-conda-linux-gnu-g++) $CONDA_PREFIX/bin/g++
+if ! command -v g++ &> /dev/null; then
+    ln -sf "$CXX" "$CONDA_PREFIX/bin/g++"
+    echo "🔗 已创建 g++ 软链接到 $CXX" >> output.log
+else
+    echo "✅ 已存在 g++，跳过软链接创建" >> output.log
+fi
 
 # === 环境变量设置 ===
 export CUDA_HOME=/usr/local/cuda
@@ -56,7 +66,7 @@ pip install pandas gekko numpy transformers accelerate >> output.log 2>> error.l
 
 # === 安装项目和插件 ===
 pip install -e . >> output.log 2>> error.log
-pip install -e AutoGPTQ || { echo "❌ 安装 AutoGPTQ 失败" >> output.log; exit 1; }
+pip install -e AutoGPTQ --config-settings editable_mode=compat || { echo "❌ 安装 AutoGPTQ 失败" >> output.log; exit 1; }
 pip install -e AutoAWQ || { echo "❌ 安装 AutoAWQ 失败" >> output.log; exit 1; }
 
 # === CUDA 扩展检查 ===
