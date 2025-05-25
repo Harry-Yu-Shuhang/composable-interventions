@@ -37,18 +37,23 @@ if [ -f /etc/profile.d/modules.sh ]; then
 fi
 module load cuda/11.8 && echo "✅ CUDA 模块加载成功" >> output.log || echo "⚠️ CUDA 模块加载失败" >> output.log
 
-# ========== 自动设置 CUDA_HOME ==========
-if command -v nvcc &> /dev/null; then
-    export CUDA_HOME=$(dirname $(dirname $(which nvcc)))
-    echo "✅ CUDA_HOME 设置为: $CUDA_HOME" >> output.log
-else
-    echo "❌ 未检测到 nvcc，请检查 CUDA 是否正确加载！" >> output.log
-    exit 1
-fi
-
+# ========== 强制设置 CUDA_HOME（已知路径）==========
+export CUDA_HOME=/vol/cuda/11.8
 export PATH=$CUDA_HOME/bin:$CONDA_PREFIX/bin:$PATH
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
+
+echo "✅ 强制设置 CUDA_HOME 为: $CUDA_HOME" >> output.log
+
+# ========== 检查 nvcc ==========
+if ! command -v nvcc &> /dev/null; then
+    echo "❌ nvcc 仍未加入 PATH，请检查 /vol/cuda/11.8/bin 是否存在" >> output.log
+    ls -l /vol/cuda/11.8/bin >> output.log 2>> error.log
+    exit 1
+else
+    echo "✅ nvcc 路径为: $(which nvcc)" >> output.log
+    nvcc --version >> output.log 2>> error.log
+fi
 
 # ========== Debug CUDA ==========
 echo "📌 PATH: $PATH" >> output.log
