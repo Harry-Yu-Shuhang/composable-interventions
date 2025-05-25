@@ -37,11 +37,14 @@ conda activate lm-compose || { echo "❌ 激活失败" >> output.log; exit 1; }
 # 安装编译工具链
 conda install -c conda-forge gcc gxx_linux-64 libstdcxx-ng cmake ninja -y >> output.log 2>> error.log
 
+# 设置 g++ 环境变量和软链接
+export CXX=$(which x86_64-conda-linux-gnu-g++)
+ln -sf $(which x86_64-conda-linux-gnu-g++) $CONDA_PREFIX/bin/g++
+
 # === 环境变量设置 ===
 export CUDA_HOME=/usr/local/cuda
-export PATH=$CUDA_HOME/bin:$PATH
+export PATH=$CONDA_PREFIX/bin:$CUDA_HOME/bin:$PATH
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$CUDA_HOME/lib64:$LD_LIBRARY_PATH
-export PATH=$CONDA_PREFIX/bin:$PATH
 
 # 检查 g++ 是否可用
 echo "🔍 g++ 路径: $(which g++)" >> output.log
