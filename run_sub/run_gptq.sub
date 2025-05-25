@@ -83,12 +83,6 @@ pip install -e AutoAWQ || { echo "❌ 安装 AutoAWQ 失败" >> output.log; exit
 # === 安装当前项目本身 ===
 pip install -e . || { echo "❌ 安装当前项目失败" >> output.log; exit 1; }
 
-# === CUDA 扩展检查 ===
-python -c 'import torch; dev = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "N/A"; print(f"Torch version: {torch.__version__}, CUDA: {torch.cuda.is_available()}, Device: {dev}")' >> output.log 2>> error.log || {
-    echo "❌ PyTorch 导入失败，退出..." >> output.log
-    exit 1
-}
-
 
 # === 模型路径检查 ===
 MODEL_DIR="models/deepseek-math-7b-instruct"
