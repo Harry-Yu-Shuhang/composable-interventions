@@ -17,31 +17,7 @@ echo "🔍 任务开始，当前目录: $(pwd)" > output.log
 cd "$SLURM_SUBMIT_DIR" || { echo "❌ 目录不存在，退出"; exit 1; }
 echo "📌 进入目录: $SLURM_SUBMIT_DIR" >> output.log
 
-# ========== DEBUG 输出 ========== #
-echo "👤 当前用户: $(whoami)" >> output.log
-echo "📂 当前目录内容:" >> output.log
-ls -alh "$SLURM_SUBMIT_DIR" >> output.log
-
-echo "🧪 检查 module 命令..." >> output.log
-if [ -f /etc/profile.d/modules.sh ]; then
-    source /etc/profile.d/modules.sh || echo "⚠️ source modules.sh 失败" >> output.log
-else
-    echo "❌ /etc/profile.d/modules.sh 不存在" >> output.log
-fi
-
-echo "📥 加载 CUDA 模块..." >> output.log
-module load cuda/11.8 && echo "✅ CUDA 模块加载成功" >> output.log || echo "⚠️ CUDA 模块加载失败" >> output.log
-
-echo "🔍 nvcc 路径:" >> output.log
-which nvcc >> output.log 2>> error.log || echo "❌ nvcc 未找到" >> output.log
-
-echo "📁 /usr/local/cuda* 内容:" >> output.log
-ls -ld /usr/local/cuda* >> output.log || echo "⚠️ /usr/local/cuda* 不存在" >> output.log
-
-echo "📥 尝试执行 nvidia-smi:" >> output.log
-nvidia-smi >> output.log 2>> error.log || echo "❌ nvidia-smi 失败" >> output.log
-
-# ========== Conda 环境初始化 ==========
+# ========== Conda 初始化并重建环境 ==========
 echo "🔁 Conda 初始化并重建环境: lm-compose" >> output.log
 source /mnt/fast/nobackup/users/ly0008/miniconda3/etc/profile.d/conda.sh
 eval "$(conda shell.bash hook)"
@@ -52,6 +28,13 @@ fi
 
 conda create -n lm-compose python=3.11 -y >> output.log 2>> error.log
 conda activate lm-compose || { echo "❌ conda 激活失败" >> output.log; exit 1; }
+
+# ========== CUDA 模块加载（必须在 conda activate 之后） ==========
+echo "🧪 检查并加载 CUDA 模块..." >> output.log
+if [ -f /etc/profile.d/modules.sh ]; then
+    source /etc/profile.d/modules.sh || echo "⚠️ source modules.sh 失败" >> output.log
+fi
+module load cuda/11.8 && echo "✅ CUDA 模块加载成功" >> output.log || echo "⚠️ CUDA 模块加载失败" >> output.log
 
 # ========== CUDA_HOME 设置 ==========
 if command -v nvcc &> /dev/null; then
@@ -69,9 +52,11 @@ export PATH=$CUDA_HOME/bin:$CONDA_PREFIX/bin:$PATH
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
-# ========== 环境 Debug ==========
+# ========== 环境变量 Debug ==========
 echo "📌 PATH: $PATH" >> output.log
 echo "📌 LD_LIBRARY_PATH: $LD_LIBRARY_PATH" >> output.log
+echo "📌 nvcc 路径: $(which nvcc)" >> output.log
+nvcc --version >> output.log 2>> error.log
 echo "📌 Python: $(which python)" >> output.log
 python --version >> output.log
 
