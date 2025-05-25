@@ -19,7 +19,7 @@ echo "📌 进入目录: $SLURM_SUBMIT_DIR" >> output.log
 
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
-# === Conda 环境处理（强制删除重建）===
+# === Conda 环境处理 ===
 echo "🔁 重建 conda 环境: lm-compose" >> output.log
 source /mnt/fast/nobackup/users/ly0008/miniconda3/etc/profile.d/conda.sh
 
@@ -28,18 +28,18 @@ if conda info --envs | grep -q "lm-compose"; then
     conda remove -n lm-compose --all -y >> output.log 2>> error.log
 fi
 
-echo "⚙️ 创建 conda 环境 'lm-compose' 并安装 gcc..." >> output.log
+echo "⚙️ 创建 conda 环境 'lm-compose'..." >> output.log
 conda create -n lm-compose python=3.11 -y >> output.log 2>> error.log
-conda activate lm-compose || { echo "❌ 激活失败" >> output.log; exit 1; }
+conda activate lm-compose || { echo "❌ 激活 conda 环境失败" >> output.log; exit 1; }
 
-# 加载 CUDA 模块
+# === 加载 CUDA 模块 ===
 if [ -f /etc/profile.d/modules.sh ]; then
     source /etc/profile.d/modules.sh
 fi
 module load cuda/11.8
 echo "✅ 已加载 CUDA 模块" >> output.log
 
-# 安装编译工具链
+# === 安装编译工具链 ===
 conda install -c conda-forge gcc gxx_linux-64 libstdcxx-ng cmake ninja -y >> output.log 2>> error.log
 
 # 设置 g++ 环境变量和软链接（避免重复）
@@ -61,17 +61,23 @@ echo "🔍 g++ 路径: $(which g++)" >> output.log
 g++ --version >> output.log 2>> error.log
 
 # === 安装 Python 依赖 ===
-echo "📦 安装 Python 依赖..." >> output.log
+echo "📦 安装通用 Python 包..." >> output.log
 pip install pandas gekko numpy transformers accelerate >> output.log 2>> error.log
 
 # === 安装 PyTorch（必须在 AutoGPTQ 前） ===
+echo "📦 安装 PyTorch 2.3.0 + CUDA 11.8..." >> output.log
 pip install torch==2.3.0+cu118 torchvision==0.18.0+cu118 torchaudio==2.3.0+cu118 \
   --index-url https://download.pytorch.org/whl/cu118 >> output.log 2>> error.log
-  
-# === 验证 PyTorch 可用性 ===
-python -c "import torch; print(f'Torch version: {torch.__version__}, CUDA available: {torch.cuda.is_available()}')" >> output.log 2>> error.log
+
+# 验证 PyTorch 可用性
+echo "🔍 验证 PyTorch 安装..." >> output.log
+python -c "import torch; print(f'Torch version: {torch.__version__}, CUDA available: {torch.cuda.is_available()}')" >> output.log 2>> error.log || {
+    echo "❌ PyTorch 导入失败，退出..." >> output.log
+    exit 1
+}
 
 # === 安装项目和插件 ===
+echo "📦 安装 AutoGPTQ 及其依赖..." >> output.log
 pip install -e . >> output.log 2>> error.log
 pip install -e AutoGPTQ --config-settings editable_mode=compat || { echo "❌ 安装 AutoGPTQ 失败" >> output.log; exit 1; }
 pip install -e AutoAWQ || { echo "❌ 安装 AutoAWQ 失败" >> output.log; exit 1; }
@@ -79,16 +85,16 @@ pip install -e AutoAWQ || { echo "❌ 安装 AutoAWQ 失败" >> output.log; exit
 # === CUDA 扩展检查 ===
 python -c "from auto_gptq.utils.import_utils import is_cuda_extension_available as check; print('✅ AutoGPTQ + CUDA Extension OK' if check() else '❌ CUDA Extension Missing')" >> output.log 2>> error.log
 
-# === 模型检查 ===
+# === 模型路径检查 ===
 MODEL_DIR="models/deepseek-math-7b-instruct"
 if [ ! -d "$MODEL_DIR" ]; then
     echo "❌ 模型目录不存在: $MODEL_DIR" >> output.log
-    echo "请先运行：huggingface-cli download deepseek-ai/deepseek-math-7b-instruct --local-dir $MODEL_DIR --local-dir-use-symlinks False" >> output.log
+    echo "📥 请先运行 huggingface-cli 下载模型到该目录" >> output.log
     exit 1
 fi
 
 # === 执行 GPTQ 压缩 ===
-echo "📦 开始 GPTQ 压缩..." >> output.log
+echo "📦 开始执行 GPTQ 压缩任务..." >> output.log
 python main.py \
     model_name=$MODEL_DIR \
     interventions=[compress] \
@@ -96,4 +102,4 @@ python main.py \
     wbits=4 \
     output_dir=compressed_models/deepseek-math-7b-gptq >> output.log 2>> error.log
 
-echo "✅ 所有任务完成" >> output.log
+echo "✅ 所有任务完成！" >> output.log
