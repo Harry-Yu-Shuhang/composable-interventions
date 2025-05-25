@@ -31,11 +31,10 @@ conda activate lm-compose || { echo "❌ conda 激活失败" >> output.log; exit
 
 # ========== CUDA 模块加载 ==========
 echo "🧪 初始化 CUDA 模块..." >> output.log
+module purge || true
 if [ -f /etc/profile.d/modules.sh ]; then
     source /etc/profile.d/modules.sh || echo "⚠️ source modules.sh 失败" >> output.log
 fi
-
-module purge
 module load cuda/11.8 && echo "✅ CUDA 模块加载成功" >> output.log || echo "⚠️ CUDA 模块加载失败" >> output.log
 
 # ========== 自动设置 CUDA_HOME ==========
@@ -49,7 +48,6 @@ export CUDA_HOME=$(dirname $(dirname "$NVCC_PATH"))
 export PATH=$CUDA_HOME/bin:$CONDA_PREFIX/bin:$PATH
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
-
 echo "✅ 设置 CUDA_HOME 为: $CUDA_HOME" >> output.log
 
 # ========== Debug CUDA ==========
@@ -108,6 +106,9 @@ python main.py \
     interventions=[compress] \
     compress=gptq \
     wbits=4 \
-    output_dir=compressed_models/deepseek-math-7b-gptq >> output.log 2>> error.log
+    output_dir=compressed_models/deepseek-math-7b-gptq >> output.log 2>> error.log || {
+    echo "❌ main.py 执行失败，退出" >> output.log
+    exit 1
+}
 
 echo "✅ 所有任务完成！" >> output.log

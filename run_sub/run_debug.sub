@@ -30,40 +30,46 @@ echo "📦 当前加载的 modules:" >> output.log
 module list 2>> error.log >> output.log
 
 echo "📥 尝试加载 CUDA 模块..." >> output.log
+module purge
 module load cuda/11.8 && echo "✅ 成功加载 cuda/11.8" >> output.log || echo "❌ 加载 cuda/11.8 失败" >> output.log
 
 echo "🔍 检查 nvcc 路径:" >> output.log
 which nvcc >> output.log 2>> error.log || echo "❌ nvcc 未找到" >> output.log
 
-echo "📌 尝试查找 nvcc 真实路径:" >> output.log
-find /usr/local -name nvcc 2>/dev/null >> output.log || echo "❌ find 没找到 nvcc" >> output.log
-
-echo "📁 /usr/local 内容:" >> output.log
-ls -lh /usr/local >> output.log
-
-echo "📁 /usr/local/cuda* 内容:" >> output.log
-ls -ld /usr/local/cuda* >> output.log || echo "⚠️ /usr/local/cuda* 不存在" >> output.log
-
-echo "📥 尝试执行 nvidia-smi:" >> output.log
-nvidia-smi >> output.log 2>> error.log || echo "❌ nvidia-smi 失败" >> output.log
-
-# CUDA_HOME 设置
-if command -v nvcc &> /dev/null; then
-    export CUDA_HOME=$(dirname $(dirname $(which nvcc)))
-    echo "✅ CUDA_HOME 自动设置为: $CUDA_HOME" >> output.log
-elif [ -x /usr/local/cuda-11.8/bin/nvcc ]; then
-    export CUDA_HOME=/usr/local/cuda-11.8
-    echo "⚠️ fallback: CUDA_HOME 设置为: $CUDA_HOME" >> output.log
+# 🧠 新增：手动查找 nvcc 路径并设置 CUDA_HOME
+echo "📌 手动查找 nvcc 路径..." >> output.log
+NVCC_PATH=$(find /vol /usr -type f -name nvcc 2>/dev/null | grep bin/nvcc | head -n 1)
+if [ -n "$NVCC_PATH" ]; then
+    export CUDA_HOME=$(dirname "$(dirname "$NVCC_PATH")")
+    export PATH="$CUDA_HOME/bin:$PATH"
+    export LD_LIBRARY_PATH="$CUDA_HOME/lib64:$LD_LIBRARY_PATH"
+    echo "✅ 找到并设置 CUDA_HOME: $CUDA_HOME" >> output.log
 else
-    echo "❌ CUDA_HOME 设置失败（nvcc 不存在）" >> output.log
+    echo "❌ 未能找到 nvcc，请检查 CUDA 是否正确安装" >> output.log
 fi
 
+# 输出路径环境变量
 echo "📌 PATH 环境变量:" >> output.log
 echo "$PATH" >> output.log
-
 echo "📌 LD_LIBRARY_PATH:" >> output.log
 echo "$LD_LIBRARY_PATH" >> output.log
 
+# 检查 nvcc 可用性
+echo "📌 nvcc 版本检查:" >> output.log
+nvcc --version >> output.log 2>> error.log || echo "❌ nvcc 无法执行" >> output.log
+
+# 检查 nvidia-smi 是否可用
+echo "📥 尝试执行 nvidia-smi:" >> output.log
+nvidia-smi >> output.log 2>> error.log || echo "❌ nvidia-smi 失败" >> output.log
+
+# 列出一些常用目录内容
+echo "📁 /usr/local 内容:" >> output.log
+ls -lh /usr/local >> output.log
+
+echo "📁 /vol/cuda* 内容:" >> output.log
+ls -ld /vol/cuda* >> output.log 2>> error.log || echo "⚠️ /vol/cuda* 不存在" >> output.log
+
+# Conda 和 Python 信息
 echo "📌 CONDA 信息:" >> output.log
 conda info >> output.log
 conda env list >> output.log
