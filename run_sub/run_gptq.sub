@@ -35,16 +35,23 @@ export CXX=$(which g++) || { echo "❌ g++ 未找到，GCC 模块未正确加载
 echo "🔍 GPU 设备信息：" >> output.log
 nvidia-smi >> output.log 2>> error.log || echo "⚠️ GPU 检测失败" >> output.log
 
-# === Conda 环境处理 ===
-echo "🔍 检查 conda 环境: lm-compose" >> output.log
+# === Conda 环境处理（强制删除重建）===
+echo "🔁 重建 conda 环境: lm-compose" >> output.log
 source ~/.bashrc
-if ! conda info --envs | grep -q "lm-compose"; then
-    echo "⚙️ 创建 conda 环境 'lm-compose'..." >> output.log
-    conda create -n lm-compose python=3.11 -y >> output.log 2>> error.log
+
+# 如果环境已存在则删除
+if conda info --envs | grep -q "lm-compose"; then
+    echo "🧹 删除已有环境 'lm-compose'..." >> output.log
+    conda remove -n lm-compose --all -y >> output.log 2>> error.log
 fi
+
+# 创建新环境
+echo "⚙️ 创建 conda 环境 'lm-compose'..." >> output.log
+conda create -n lm-compose python=3.11 -y >> output.log 2>> error.log
 
 echo "🚀 激活 conda 环境" >> output.log
 conda activate lm-compose || { echo "❌ 激活失败" >> output.log; exit 1; }
+
 
 # === 环境变量设置 ===
 export CUDA_HOME=/usr/local/cuda
