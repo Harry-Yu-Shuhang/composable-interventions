@@ -41,6 +41,7 @@ conda install -c conda-forge gcc gxx_linux-64 libstdcxx-ng cmake ninja -y >> out
 export CUDA_HOME=/usr/local/cuda
 export PATH=$CUDA_HOME/bin:$PATH
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$CUDA_HOME/lib64:$LD_LIBRARY_PATH
+export PATH=$CONDA_PREFIX/bin:$PATH
 
 # 检查 g++ 是否可用
 echo "🔍 g++ 路径: $(which g++)" >> output.log
