@@ -1,0 +1,65 @@
+#!/bin/bash
+
+#SBATCH --partition=3090_risk
+#SBATCH --nodelist=aisurrey15
+#SBATCH --job-name=gptq_deepseek
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --gpus-per-node=1
+#SBATCH --cpus-per-task=8
+#SBATCH --time=12:00:00
+#SBATCH --mem=64G
+#SBATCH --output=output.log
+#SBATCH --error=error.log
+
+echo "🔍 任务开始，当前目录: $(pwd)" > output.log
+cd "$SLURM_SUBMIT_DIR" || { echo "❌ 目录不存在，退出"; exit 1; }
+echo "📌 进入目录: $SLURM_SUBMIT_DIR" >> output.log
+
+# CUDA 内存管理策略
+export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
+
+# 加载 module 系统
+if [ -f /etc/profile.d/modules.sh ]; then
+    source /etc/profile.d/modules.sh
+else
+    echo "⚠️ modules.sh 文件不存在，跳过 module 操作" >> output.log
+fi
+
+# 加载 CUDA 11.8
+AVAILABLE_CUDA=$(module spider cuda 2>&1 | grep -Eo 'cuda/11\.8' | tail -n1)
+if [[ -n "$AVAILABLE_CUDA" ]]; then
+    module load "$AVAILABLE_CUDA"
+    echo "✅ 加载 CUDA 版本: $AVAILABLE_CUDA" >> output.log
+else
+    echo "⚠️ 找不到 CUDA 11.8，尝试使用系统 CUDA" >> output.log
+fi
+
+# 检查 GPU
+echo "🔍 GPU 设备信息：" >> output.log
+nvidia-smi >> output.log 2>> error.log || echo "⚠️ GPU 检测失败，可能使用 CPU" >> output.log
+
+# 激活 uv 虚拟环境
+echo "🚀 激活 uv 环境" >> output.log
+pip install uv >> output.log 2>> error.log || echo "⚠️ uv 安装失败" >> output.log
+uv pip install "transformers>=4.38.0" "auto-gptq>=0.6.0" --upgrade >> output.log 2>> error.log
+uv sync >> output.log 2>> error.log || echo "⚠️ uv sync 失败" >> output.log
+
+# === 检查模型目录是否存在 ===
+MODEL_DIR="models/deepseek-math-7b-instruct"
+if [ ! -d "$MODEL_DIR" ]; then
+    echo "❌ 模型目录 $MODEL_DIR 不存在，请先用 huggingface-cli 下载：" >> output.log
+    echo "huggingface-cli download deepseek-ai/deepseek-math-7b-instruct --local-dir $MODEL_DIR --local-dir-use-symlinks False" >> output.log
+    exit 1
+fi
+
+# === 执行 GPTQ 压缩 ===
+echo "📦 开始 GPTQ 压缩任务..." >> output.log
+uv run python main.py \
+    model_name=$MODEL_DIR \
+    interventions=[compress] \
+    compress=gptq \
+    wbits=4 >> output.log 2>> error.log
+
+# === 完成 ===
+echo "✅ GPTQ 压缩完成" >> output.log
