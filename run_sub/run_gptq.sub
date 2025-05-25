@@ -68,6 +68,7 @@ python main.py \
     model_name=$MODEL_DIR \
     interventions=[compress] \
     compress=gptq \
-    wbits=4 >> output.log 2>> error.log
+    wbits=4 >> output.log 2>> error.log \
+    output_dir=compressed_models/deepseek-math-7b-gptq
 
 echo "✅ 所有任务完成" >> output.log
