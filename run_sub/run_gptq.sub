@@ -18,36 +18,32 @@ echo "🔍 任务开始: $(date)"
 echo "📂 当前目录: $(pwd)"
 cd "$SLURM_SUBMIT_DIR" || { echo "❌ 无法进入提交目录，退出"; exit 1; }
 
-# ===== Apptainer 模块 =====
+# ===== 加载 Apptainer 模块 =====
 if [ -f /etc/profile.d/modules.sh ]; then
     source /etc/profile.d/modules.sh || true
     module load apptainer || echo "⚠️ 无法加载 apptainer，确保已安装"
 fi
 
-# ===== 容器镜像构建 =====
+# ===== 强制重新构建容器镜像 =====
 DEF_FILE="run_sub/lm-compose.def"
 SIF_FILE="run_sub/lm-compose.sif"
-if [ ! -f "$SIF_FILE" ]; then
-    echo "📦 构建容器镜像: $SIF_FILE"
-    apptainer build "$SIF_FILE" "$DEF_FILE"
-else
-    echo "✅ 容器镜像已存在: $SIF_FILE"
-fi
+echo "📦 正在重新构建容器镜像: $SIF_FILE"
+apptainer build "$SIF_FILE" "$DEF_FILE"
 
-# ===== 下载模型（如未存在）=====
+# ===== HuggingFace 模型下载（如缺）=====
 MODEL_NAME="deepseek-ai/deepseek-math-7b-instruct"
 MODEL_DIR="models/deepseek-math-7b-instruct"
 TOKEN_FILE="run_sub/huggingface.token"
 
 if [ ! -f "$TOKEN_FILE" ]; then
-    echo "❌ 缺少 token 文件: $TOKEN_FILE"
+    echo "❌ 缺少 HuggingFace token 文件: $TOKEN_FILE"
     exit 1
 fi
 
 HF_TOKEN=$(cat "$TOKEN_FILE")
 
 if [ ! -d "$MODEL_DIR" ]; then
-    echo "📥 未找到模型目录，开始下载: $MODEL_NAME"
+    echo "📥 模型未找到，开始下载: $MODEL_NAME"
     apptainer exec --nv --bind "$PWD":/workspace "$SIF_FILE" \
       bash -c "
         cd /workspace &&
