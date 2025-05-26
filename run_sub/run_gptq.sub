@@ -13,102 +13,25 @@
 
 set -e
 
-echo "🔍 任务开始，当前目录: $(pwd)" > output.log
-cd "$SLURM_SUBMIT_DIR" || { echo "❌ 目录不存在，退出"; exit 1; }
-echo "📌 进入目录: $SLURM_SUBMIT_DIR" >> output.log
+echo "🔍 任务开始: $(date)"
+echo "📂 当前目录: $(pwd)"
 
-# ========== Conda 初始化并重建环境 ==========
-echo "🔁 Conda 初始化并重建环境: lm-compose" >> output.log
-source /mnt/fast/nobackup/users/ly0008/miniconda3/etc/profile.d/conda.sh
-eval "$(conda shell.bash hook)"
+cd "$SLURM_SUBMIT_DIR" || { echo "❌ 无法进入提交目录，退出"; exit 1; }
 
-if conda info --envs | grep -q "lm-compose"; then
-    conda remove -n lm-compose --all -y >> output.log 2>> error.log
-fi
-
-conda create -n lm-compose python=3.11 -y >> output.log 2>> error.log
-conda activate lm-compose || { echo "❌ conda 激活失败" >> output.log; exit 1; }
-
-# ========== CUDA 模块加载 ==========
-echo "🧪 初始化 CUDA 模块..." >> output.log
-module purge || true
+# ========== 加载 Apptainer 模块（如果可用）==========
 if [ -f /etc/profile.d/modules.sh ]; then
-    source /etc/profile.d/modules.sh || echo "⚠️ source modules.sh 失败" >> output.log
-fi
-module load cuda/11.8 && echo "✅ CUDA 模块加载成功" >> output.log || echo "⚠️ CUDA 模块加载失败" >> output.log
-
-# ========== 自动设置 CUDA_HOME ==========
-NVCC_PATH=$(command -v nvcc)
-if [ -z "$NVCC_PATH" ]; then
-    echo "❌ 没有找到 nvcc，CUDA 未正确加载，退出" >> output.log
-    exit 1
+    source /etc/profile.d/modules.sh || true
 fi
 
-export CUDA_HOME=$(dirname $(dirname "$NVCC_PATH"))
-export PATH=$CUDA_HOME/bin:$CONDA_PREFIX/bin:$PATH
-export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
-export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
-echo "✅ 设置 CUDA_HOME 为: $CUDA_HOME" >> output.log
+# ========== 容器执行 ==========
+# lm-compose.sif 是你用 .def 构建好的容器镜像文件
+apptainer exec --nv --bind "$PWD":/workspace lm-compose.sif \
+  bash -c "cd /workspace && conda run -n lm-compose \
+    python main.py \
+      model_name=models/deepseek-math-7b-instruct \
+      interventions=[compress] \
+      compress=gptq \
+      wbits=4 \
+      output_dir=compressed_models/deepseek-math-7b-gptq"
 
-# ========== Debug CUDA ==========
-echo "📌 PATH: $PATH" >> output.log
-echo "📌 LD_LIBRARY_PATH: $LD_LIBRARY_PATH" >> output.log
-echo "📌 nvcc 路径: $(which nvcc)" >> output.log
-ls -l $(which nvcc) >> output.log 2>> error.log || echo "⚠️ nvcc 路径无效" >> output.log
-nvcc --version >> output.log 2>> error.log || {
-    echo "❌ nvcc 无法执行，退出" >> output.log
-    exit 1
-}
-
-# ========== 安装依赖 ==========
-conda install -c conda-forge gcc gxx_linux-64 libstdcxx-ng cmake ninja -y >> output.log 2>> error.log
-
-export CXX=$(which x86_64-conda-linux-gnu-g++)
-if ! command -v g++ &> /dev/null; then
-    ln -sf "$CXX" "$CONDA_PREFIX/bin/g++"
-    echo "🔗 g++ 软链接已创建: $CXX" >> output.log
-else
-    echo "✅ g++ 已存在: $(which g++)" >> output.log
-fi
-g++ --version >> output.log 2>> error.log
-
-pip install pandas gekko numpy transformers accelerate >> output.log 2>> error.log
-
-# ========== 安装 PyTorch ==========
-echo "📦 安装 PyTorch 2.3.0 + CUDA 11.8" >> output.log
-pip install --no-cache-dir --force-reinstall \
-  torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 \
-  --index-url https://download.pytorch.org/whl/cu118 \
-  --extra-index-url https://pypi.org/simple >> output.log 2>> error.log
-
-python -c 'import torch; print("Torch:", torch.__version__, "CUDA OK:", torch.cuda.is_available(), "Device:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "N/A")' >> output.log 2>> error.log || {
-    echo "❌ PyTorch 导入失败，退出" >> output.log
-    exit 1
-}
-
-# ========== 安装 AutoGPTQ 和项目 ==========
-pip install -e AutoGPTQ >> output.log 2>> error.log || { echo "❌ 安装 AutoGPTQ 失败" >> output.log; exit 1; }
-pip install -e AutoAWQ >> output.log 2>> error.log || { echo "❌ 安装 AutoAWQ 失败" >> output.log; exit 1; }
-pip install -e . >> output.log 2>> error.log || { echo "❌ 安装当前项目失败" >> output.log; exit 1; }
-
-# ========== 模型检查 ==========
-MODEL_DIR="models/deepseek-math-7b-instruct"
-if [ ! -d "$MODEL_DIR" ]; then
-    echo "❌ 模型目录不存在: $MODEL_DIR" >> output.log
-    echo "📥 请先运行 huggingface-cli 下载模型" >> output.log
-    exit 1
-fi
-
-# ========== GPTQ 压缩 ==========
-echo "📦 开始 GPTQ 压缩任务..." >> output.log
-python main.py \
-    model_name=$MODEL_DIR \
-    interventions=[compress] \
-    compress=gptq \
-    wbits=4 \
-    output_dir=compressed_models/deepseek-math-7b-gptq >> output.log 2>> error.log || {
-    echo "❌ main.py 执行失败，退出" >> output.log
-    exit 1
-}
-
-echo "✅ 所有任务完成！" >> output.log
+echo "✅ 完成时间: $(date)"
