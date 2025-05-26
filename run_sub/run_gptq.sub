@@ -33,28 +33,6 @@ apptainer build "$SIF_FILE" "$DEF_FILE"
 # ===== HuggingFace 模型下载（如缺）=====
 MODEL_NAME="deepseek-ai/deepseek-math-7b-instruct"
 MODEL_DIR="models/deepseek-math-7b-instruct"
-TOKEN_FILE="run_sub/huggingface.token"
-
-if [ ! -f "$TOKEN_FILE" ]; then
-    echo "❌ 缺少 HuggingFace token 文件: $TOKEN_FILE"
-    exit 1
-fi
-
-HF_TOKEN=$(cat "$TOKEN_FILE")
-
-if [ ! -d "$MODEL_DIR" ]; then
-    echo "📥 模型未找到，开始下载: $MODEL_NAME"
-    apptainer exec --nv --bind "$PWD":/workspace "$SIF_FILE" \
-      bash -c "
-        cd /workspace &&
-        export HUGGINGFACE_HUB_TOKEN=$HF_TOKEN &&
-        huggingface-cli download $MODEL_NAME \
-          --local-dir $MODEL_DIR \
-          --local-dir-use-symlinks False
-      "
-else
-    echo "✅ 模型已存在: $MODEL_DIR"
-fi
 
 # ===== 执行主程序 =====
 apptainer exec --nv --bind "$PWD":/workspace "$SIF_FILE" \
