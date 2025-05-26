@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --partition=3090_risk
-#SBATCH --nodelist=aisurrey15
+#SBATCH --partition=debug
+#SBATCH --nodelist=aisurrey-debug01
 #SBATCH --job-name=gptq_debug
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
