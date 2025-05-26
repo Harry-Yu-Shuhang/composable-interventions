@@ -12,25 +12,21 @@
 #SBATCH --error=error.log
 
 set -eEuo pipefail
-
-# ========== 异常终止处理 ==========
 trap 'echo "❌ 任务失败: 行号 $LINENO，退出码 $?"; exit 1' ERR
 
 echo "🔍 任务开始: $(date)"
 echo "📂 当前目录: $(pwd)"
-
 cd "$SLURM_SUBMIT_DIR" || { echo "❌ 无法进入提交目录，退出"; exit 1; }
 
-# ========== 加载 Apptainer 模块 ==========
+# ===== Apptainer 模块 =====
 if [ -f /etc/profile.d/modules.sh ]; then
     source /etc/profile.d/modules.sh || true
     module load apptainer || echo "⚠️ 无法加载 apptainer，确保已安装"
 fi
 
-# ========== 自动构建容器镜像 ==========
+# ===== 容器镜像构建 =====
 DEF_FILE="run_sub/lm-compose.def"
 SIF_FILE="run_sub/lm-compose.sif"
-
 if [ ! -f "$SIF_FILE" ]; then
     echo "📦 构建容器镜像: $SIF_FILE"
     apptainer build "$SIF_FILE" "$DEF_FILE"
@@ -38,11 +34,37 @@ else
     echo "✅ 容器镜像已存在: $SIF_FILE"
 fi
 
-# ========== 执行主程序 ==========
+# ===== 下载模型（如未存在）=====
+MODEL_NAME="deepseek-ai/deepseek-math-7b-instruct"
+MODEL_DIR="models/deepseek-math-7b-instruct"
+TOKEN_FILE="huggingface.token"
+
+if [ ! -f "$TOKEN_FILE" ]; then
+    echo "❌ 缺少 token 文件: $TOKEN_FILE"
+    exit 1
+fi
+
+HF_TOKEN=$(cat "$TOKEN_FILE")
+
+if [ ! -d "$MODEL_DIR" ]; then
+    echo "📥 未找到模型目录，开始下载: $MODEL_NAME"
+    apptainer exec --nv --bind "$PWD":/workspace "$SIF_FILE" \
+      bash -c "
+        cd /workspace &&
+        export HUGGINGFACE_HUB_TOKEN=$HF_TOKEN &&
+        huggingface-cli download $MODEL_NAME \
+          --local-dir $MODEL_DIR \
+          --local-dir-use-symlinks False
+      "
+else
+    echo "✅ 模型已存在: $MODEL_DIR"
+fi
+
+# ===== 执行主程序 =====
 apptainer exec --nv --bind "$PWD":/workspace "$SIF_FILE" \
   bash -c "cd /workspace && conda run -n lm-compose \
     python main.py \
-      model_name=models/deepseek-math-7b-instruct \
+      model_name=$MODEL_DIR \
       interventions=[compress] \
       compress=gptq \
       wbits=4 \
