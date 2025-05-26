@@ -18,14 +18,25 @@ echo "📂 当前目录: $(pwd)"
 
 cd "$SLURM_SUBMIT_DIR" || { echo "❌ 无法进入提交目录，退出"; exit 1; }
 
-# ========== 加载 Apptainer 模块（如果可用）==========
+# ========== 加载 Apptainer 模块 ==========
 if [ -f /etc/profile.d/modules.sh ]; then
     source /etc/profile.d/modules.sh || true
+    module load apptainer || echo "⚠️ 无法加载 apptainer，确保已安装"
 fi
 
-# ========== 容器执行 ==========
-# lm-compose.sif 是你用 .def 构建好的容器镜像文件
-apptainer exec --nv --bind "$PWD":/workspace lm-compose.sif \
+# ========== 自动构建容器镜像 ==========
+DEF_FILE="run_sub/lm-compose.def"
+SIF_FILE="run_sub/lm-compose.sif"
+
+if [ ! -f "$SIF_FILE" ]; then
+    echo "📦 构建容器镜像: $SIF_FILE"
+    apptainer build "$SIF_FILE" "$DEF_FILE"
+else
+    echo "✅ 容器镜像已存在: $SIF_FILE"
+fi
+
+# ========== 执行主程序 ==========
+apptainer exec --nv --bind "$PWD":/workspace "$SIF_FILE" \
   bash -c "cd /workspace && conda run -n lm-compose \
     python main.py \
       model_name=models/deepseek-math-7b-instruct \
@@ -34,4 +45,4 @@ apptainer exec --nv --bind "$PWD":/workspace lm-compose.sif \
       wbits=4 \
       output_dir=compressed_models/deepseek-math-7b-gptq"
 
-echo "✅ 完成时间: $(date)"
+echo "✅ 任务完成: $(date)"
