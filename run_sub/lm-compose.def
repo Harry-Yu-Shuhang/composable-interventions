@@ -12,6 +12,7 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     export CUDA_HOME=/usr/local/cuda
     export PATH=/opt/conda/bin:$PATH
     export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+    export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9"
 
 %post
     apt-get update && apt-get install -y \
@@ -38,22 +39,35 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     /opt/conda/bin/conda run -n lm-compose pip install -U pip setuptools wheel
     /opt/conda/bin/conda run -n lm-compose pip install pandas numpy transformers accelerate gekko packaging==24.0 huggingface_hub
 
-    # 克隆并安装项目
+    # 克隆并安装主项目（AutoGPTQ/AWQ 安装延迟）
     mkdir -p /workspace && cd /workspace
     git clone https://github.com/Harry-Yu-Shuhang/composable-interventions.git lm-compose
     cd lm-compose
     /opt/conda/bin/conda run -n lm-compose pip install -e .
-    /opt/conda/bin/conda run -n lm-compose pip install -e AutoGPTQ
-    /opt/conda/bin/conda run -n lm-compose pip install -e AutoAWQ
 
 %runscript
     echo "✅ 容器启动成功！当前目录: $(pwd)"
 
-    # 自动登录 HuggingFace（如果 token 文件存在）
+    export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9"
+
+    # 自动登录 HuggingFace
     TOKEN_FILE="/workspace/.hf_token"
     if [ -f "$TOKEN_FILE" ]; then
-        echo "🔑 Found token file, logging into HuggingFace..."
-        huggingface-cli login --token \"\$(cat \$TOKEN_FILE)\" || echo \"⚠️ Huggingface 登录失败\"
+        huggingface-cli login --token "$(cat $TOKEN_FILE)" || echo "⚠️ HF 登录失败"
+    fi
+
+    # 安装 AutoGPTQ
+    if ! python -c "import auto_gptq" 2>/dev/null; then
+        echo "📦 安装 AutoGPTQ..."
+        cd /workspace/lm-compose/AutoGPTQ
+        pip install -e . || echo "❌ AutoGPTQ 安装失败，请检查 CUDA 与编译器配置"
+    fi
+
+    # 安装 AutoAWQ
+    if ! python -c "import awq" 2>/dev/null; then
+        echo "📦 安装 AutoAWQ..."
+        cd /workspace/lm-compose/AutoAWQ
+        pip install -e .
     fi
 
     # 自动下载模型
@@ -63,4 +77,4 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
         python -c "from huggingface_hub import snapshot_download; snapshot_download('deepseek-ai/deepseek-math-7b-instruct', local_dir='$MODEL_DIR', local_dir_use_symlinks=False)"
     fi
 
-    exec "\$@"
+    exec "$@"
