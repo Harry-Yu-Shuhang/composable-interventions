@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 
 %labels
     Author Yushuhang
@@ -12,6 +12,9 @@ From: nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
     export CUDA_HOME=/usr/local/cuda
     export PATH=/opt/conda/bin:$PATH
     export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+    export CONDA_DEFAULT_ENV=lm-compose
+    export CONDA_PREFIX=/opt/conda/envs/lm-compose
+    export PATH=$CONDA_PREFIX/bin:$PATH
 
 %post
     apt-get update && apt-get install -y \
@@ -20,31 +23,35 @@ From: nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
         libssl-dev libffi-dev libstdc++6 cmake ninja-build \
         && apt-get clean
 
+    if ! command -v nvcc &> /dev/null; then
+        echo "❌ CUDA compiler nvcc not found. Check base image." >&2
+        exit 1
+    fi
+
     # 安装 Conda
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
     bash miniconda.sh -b -p /opt/conda && rm miniconda.sh
     export PATH=/opt/conda/bin:$PATH
+    /opt/conda/bin/conda init bash
 
-    # 初始化 Conda 环境
-    . /opt/conda/etc/profile.d/conda.sh
-    conda create -n lm-compose python=3.11 -y
-    conda activate lm-compose
+    # 创建环境
+    /opt/conda/bin/conda create -n lm-compose python=3.11 -y
 
-    # 安装 PyTorch
-    pip install --no-cache-dir torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 \
+    # 使用环境中 pip 安装依赖
+    /opt/conda/envs/lm-compose/bin/pip install --no-cache-dir \
+        torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 \
         --index-url https://download.pytorch.org/whl/cu118
 
-    # 安装其它依赖
-    pip install -U pip setuptools wheel
-    pip install pandas numpy transformers accelerate gekko packaging==24.0
+    /opt/conda/envs/lm-compose/bin/pip install -U pip setuptools wheel
+    /opt/conda/envs/lm-compose/bin/pip install pandas numpy transformers accelerate gekko packaging==24.0
 
-    # 克隆并安装项目
+    # 克隆项目
     mkdir -p /workspace && cd /workspace
     git clone https://github.com/Harry-Yu-Shuhang/composable-interventions.git lm-compose
     cd lm-compose
-    pip install -e .
-    pip install -e AutoGPTQ
-    pip install -e AutoAWQ
+    /opt/conda/envs/lm-compose/bin/pip install -e .
+    /opt/conda/envs/lm-compose/bin/pip install -e AutoGPTQ
+    /opt/conda/envs/lm-compose/bin/pip install -e AutoAWQ
 
 %runscript
     echo "✅ 容器启动成功！当前目录: $(pwd)"
