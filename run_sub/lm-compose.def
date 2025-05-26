@@ -37,9 +37,9 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     /opt/conda/bin/conda run -n lm-compose pip install --no-cache-dir torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 \
         --index-url https://download.pytorch.org/whl/cu118
     /opt/conda/bin/conda run -n lm-compose pip install -U pip setuptools wheel
-    /opt/conda/bin/conda run -n lm-compose pip install pandas numpy transformers accelerate gekko packaging==24.0 huggingface_hub
+    /opt/conda/bin/conda run -n lm-compose pip install pandas numpy transformers accelerate gekko packaging==24.0 huggingface_hub huggingface-cli
 
-    # 克隆并安装主项目（AutoGPTQ/AWQ 安装延迟）
+    # 克隆主项目（AutoGPTQ/AWQ 安装延迟）
     mkdir -p /workspace && cd /workspace
     git clone https://github.com/Harry-Yu-Shuhang/composable-interventions.git lm-compose
     cd lm-compose
@@ -48,22 +48,26 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 %runscript
     echo "✅ 容器启动成功！当前目录: $(pwd)"
 
+    # 初始化 Conda
+    source /opt/conda/etc/profile.d/conda.sh
+    conda activate lm-compose
+
     export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9"
 
     # 自动登录 HuggingFace
     TOKEN_FILE="/workspace/.hf_token"
     if [ -f "$TOKEN_FILE" ]; then
-        huggingface-cli login --token "$(cat $TOKEN_FILE)" || echo "⚠️ HF 登录失败"
+        huggingface-cli login --token "$(cat $TOKEN_FILE)" || echo "⚠️ HuggingFace 登录失败"
     fi
 
-    # 安装 AutoGPTQ
+    # 安装 AutoGPTQ（如缺）
     if ! python -c "import auto_gptq" 2>/dev/null; then
         echo "📦 安装 AutoGPTQ..."
         cd /workspace/lm-compose/AutoGPTQ
         pip install -e . || echo "❌ AutoGPTQ 安装失败，请检查 CUDA 与编译器配置"
     fi
 
-    # 安装 AutoAWQ
+    # 安装 AutoAWQ（如缺）
     if ! python -c "import awq" 2>/dev/null; then
         echo "📦 安装 AutoAWQ..."
         cd /workspace/lm-compose/AutoAWQ
