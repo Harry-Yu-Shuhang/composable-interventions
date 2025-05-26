@@ -11,7 +11,10 @@
 #SBATCH --output=output.log
 #SBATCH --error=error.log
 
-set -e
+set -eEuo pipefail
+
+# ========== 异常终止处理 ==========
+trap 'echo "❌ 任务失败: 行号 $LINENO，退出码 $?"; exit 1' ERR
 
 echo "🔍 任务开始: $(date)"
 echo "📂 当前目录: $(pwd)"
