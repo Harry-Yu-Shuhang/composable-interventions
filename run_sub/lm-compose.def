@@ -26,7 +26,7 @@ From: nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
     export PATH=/opt/conda/bin:$PATH
 
     # 初始化 Conda 环境
-    source /opt/conda/etc/profile.d/conda.sh
+    . /opt/conda/etc/profile.d/conda.sh
     conda create -n lm-compose python=3.11 -y
     conda activate lm-compose
 
