@@ -37,7 +37,7 @@ fi
 # ===== 下载模型（如未存在）=====
 MODEL_NAME="deepseek-ai/deepseek-math-7b-instruct"
 MODEL_DIR="models/deepseek-math-7b-instruct"
-TOKEN_FILE="huggingface.token"
+TOKEN_FILE="run_sub/huggingface.token"
 
 if [ ! -f "$TOKEN_FILE" ]; then
     echo "❌ 缺少 token 文件: $TOKEN_FILE"

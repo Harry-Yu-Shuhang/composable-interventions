@@ -21,8 +21,9 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
         && apt-get clean
 
     if ! command -v nvcc &> /dev/null; then
-        echo "❌ CUDA compiler nvcc not found. Check base image." >&2
-        exit 1
+        echo "⚠️ Warning: nvcc not found in PATH. Please ensure CUDA is usable at runtime." >&2
+    else
+        echo "✅ nvcc detected: $(which nvcc)"
     fi
 
     # 安装 Conda
@@ -30,27 +31,36 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     bash miniconda.sh -b -p /opt/conda && rm miniconda.sh
     export PATH=/opt/conda/bin:$PATH
 
-    # 初始化 Conda 环境
-    . /opt/conda/etc/profile.d/conda.sh
-    conda create -n lm-compose python=3.11 -y
-    conda activate lm-compose
-
-    # 安装 PyTorch
-    pip install --no-cache-dir torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 \
+    # 创建环境并安装依赖
+    /opt/conda/bin/conda create -n lm-compose python=3.11 -y
+    /opt/conda/bin/conda run -n lm-compose pip install --no-cache-dir torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 \
         --index-url https://download.pytorch.org/whl/cu118
-
-    # 安装其它依赖
-    pip install -U pip setuptools wheel
-    pip install pandas numpy transformers accelerate gekko packaging==24.0 huggingface_hub
+    /opt/conda/bin/conda run -n lm-compose pip install -U pip setuptools wheel
+    /opt/conda/bin/conda run -n lm-compose pip install pandas numpy transformers accelerate gekko packaging==24.0 huggingface_hub
 
     # 克隆并安装项目
     mkdir -p /workspace && cd /workspace
     git clone https://github.com/Harry-Yu-Shuhang/composable-interventions.git lm-compose
     cd lm-compose
-    pip install -e .
-    pip install -e AutoGPTQ
-    pip install -e AutoAWQ
+    /opt/conda/bin/conda run -n lm-compose pip install -e .
+    /opt/conda/bin/conda run -n lm-compose pip install -e AutoGPTQ
+    /opt/conda/bin/conda run -n lm-compose pip install -e AutoAWQ
 
 %runscript
     echo "✅ 容器启动成功！当前目录: $(pwd)"
-    exec "$@"
+
+    # 自动登录 HuggingFace（如果 token 文件存在）
+    TOKEN_FILE="/workspace/.hf_token"
+    if [ -f "$TOKEN_FILE" ]; then
+        echo "🔑 Found token file, logging into HuggingFace..."
+        huggingface-cli login --token \"\$(cat \$TOKEN_FILE)\" || echo \"⚠️ Huggingface 登录失败\"
+    fi
+
+    # 自动下载模型
+    MODEL_DIR="/workspace/models/deepseek-math-7b-instruct"
+    if [ ! -d "$MODEL_DIR" ]; then
+        echo "📥 模型未找到，尝试下载..."
+        python -c "from huggingface_hub import snapshot_download; snapshot_download('deepseek-ai/deepseek-math-7b-instruct', local_dir='$MODEL_DIR', local_dir_use_symlinks=False)"
+    fi
+
+    exec "\$@"
