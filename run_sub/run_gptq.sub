@@ -28,7 +28,7 @@ fi
 DEF_FILE="run_sub/lm-compose.def"
 SIF_FILE="run_sub/lm-compose.sif"
 echo "📦 正在重新构建容器镜像: $SIF_FILE"
-apptainer build "$SIF_FILE" "$DEF_FILE"
+apptainer build --force "$SIF_FILE" "$DEF_FILE"
 
 # ===== HuggingFace 模型下载（如缺）=====
 MODEL_NAME="deepseek-ai/deepseek-math-7b-instruct"
