@@ -42,12 +42,9 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     /opt/conda/bin/conda run -n lm-compose pip install \
         pandas numpy "huggingface_hub[cli]" transformers accelerate gekko packaging==24.0
 
-    echo "📦 [5/5] 安装 lm-compose 与 AutoGPTQ..."
-    /opt/conda/bin/conda run -n lm-compose pip install -e /opt/app/
-
-    # 设置 CUDA 架构列表以避免 IndexError
-    export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9"
-    /opt/conda/bin/conda run -n lm-compose pip install -e /opt/app/AutoGPTQ || echo "❌ AutoGPTQ 安装失败"
+    echo "📦 [5/5] 安装主项目与 AutoGPTQ..."
+    /opt/conda/bin/conda run -n lm-compose pip install --use-pep517 -e /opt/app/
+    /opt/conda/bin/conda run -n lm-compose pip install --use-pep517 -e /opt/app/AutoGPTQ || echo "❌ AutoGPTQ 安装失败"
 
 %runscript
     echo "✅ 容器启动成功！"
