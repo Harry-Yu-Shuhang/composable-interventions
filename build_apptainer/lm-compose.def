@@ -5,15 +5,18 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     Author Yushuhang
     Description Container for lm-compose with CUDA 11.8 + PyTorch 2.3 + GPTQ/AWQ support
 
+%files
+    . /opt/app/
+
 %environment
     export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-    export TRANSFORMERS_CACHE=/workspace/hf_cache
-    export HF_HOME=/workspace/hf_cache
+    export TRANSFORMERS_CACHE=/opt/app/hf_cache
+    export HF_HOME=/opt/app/hf_cache
     export CUDA_HOME=/usr/local/cuda
     export PATH=/opt/conda/bin:$PATH
     export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
     export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9"
-    export PYTHONPATH=/opt/app:$PYTHONPATH
+    export PYTHONPATH=/opt/app
 
 %post
     apt-get update && apt-get install -y \
@@ -21,12 +24,6 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
         ca-certificates libglib2.0-0 libsm6 libxrender1 libxext6 \
         libssl-dev libffi-dev libstdc++6 cmake ninja-build \
         && apt-get clean
-
-    if ! command -v nvcc &> /dev/null; then
-        echo "⚠️ Warning: nvcc not found in PATH. Please ensure CUDA is usable at runtime." >&2
-    else
-        echo "✅ nvcc detected: $(which nvcc)"
-    fi
 
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
     bash miniconda.sh -b -p /opt/conda && rm miniconda.sh
@@ -36,18 +33,18 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     /opt/conda/bin/conda run -n lm-compose pip install --no-cache-dir \
         torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 \
         --index-url https://download.pytorch.org/whl/cu118
+
     /opt/conda/bin/conda run -n lm-compose pip install -U pip setuptools wheel
     /opt/conda/bin/conda run -n lm-compose pip install \
         pandas numpy "huggingface_hub[cli]" transformers accelerate gekko packaging==24.0
 
-    mkdir -p /opt/app
-    cp /workspace/lm-compose/main.py /opt/app/
-    cp /workspace/lm-compose/main_quantize.py /opt/app/
-    cp -r /workspace/models /opt/app/models || true
+    /opt/conda/bin/conda run -n lm-compose pip install -e /opt/app/
+    /opt/conda/bin/conda run -n lm-compose pip install -e /opt/app/AutoGPTQ || echo "AutoGPTQ install failed"
+    /opt/conda/bin/conda run -n lm-compose pip install -e /opt/app/AutoAWQ || echo "AutoAWQ install failed"
 
 %runscript
-    echo "✅ 容器启动成功！当前目录: $(pwd)"
+    echo "✅ 容器启动成功！"
     source /opt/conda/etc/profile.d/conda.sh
     conda activate lm-compose
-
-    python /opt/app/main.py "$@"
+    cd /opt/app
+    python main.py "$@"

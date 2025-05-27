@@ -23,8 +23,8 @@ if [ -f /etc/profile.d/modules.sh ]; then
     module load apptainer || echo "⚠️ 无法加载 apptainer，确保已安装"
 fi
 
-DEF_FILE="run_sub/lm-compose.def"
-SIF_FILE="run_sub/lm-compose.sif"
+DEF_FILE="build_apptainer/lm-compose.def"
+SIF_FILE="build_apptainer/lm-compose.sif"
 echo "📦 正在重新构建容器镜像: $SIF_FILE"
 apptainer build --force "$SIF_FILE" "$DEF_FILE"
 
