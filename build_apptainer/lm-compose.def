@@ -15,6 +15,7 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     sparsellm /opt/app/sparsellm
     download.py /opt/app/
     pyproject.toml /opt/app/
+    install.sh /opt/app/install.sh
 
 %environment
     export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
@@ -39,24 +40,16 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
     bash miniconda.sh -b -p /opt/conda && rm miniconda.sh
     export PATH=/opt/conda/bin:$PATH
-    . /opt/conda/etc/profile.d/conda.sh
 
-    echo "📦 [3/5] 创建 Conda 环境并安装 PyTorch..."
-    conda create -n lm-compose python=3.11 -y
-    /opt/conda/bin/conda run -n lm-compose pip install --no-cache-dir \
-        torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 \
-        --index-url https://download.pytorch.org/whl/cu118
+    echo "📦 [3/5] 创建 Conda 环境..."
+    /opt/conda/bin/conda create -n lm-compose python=3.11 -y
+    /opt/conda/bin/conda init bash
 
-    echo "📦 [4/5] 安装 Python 包依赖..."
-    /opt/conda/bin/conda run -n lm-compose pip install -U pip setuptools wheel
-    /opt/conda/bin/conda run -n lm-compose pip install \
-        pandas numpy huggingface_hub[cli] transformers accelerate gekko packaging==24.0
-
-    echo "📦 [5/5] 安装主项目与 AutoGPTQ..."
-    /opt/conda/bin/conda run -n lm-compose pip install --use-pep517 -e /opt/app/ || exit 1
-    /opt/conda/bin/conda run -n lm-compose pip install --use-pep517 -e /opt/app/AutoGPTQ || { echo "❌ AutoGPTQ 安装失败"; exit 1; }
+    echo "📦 [4/5] 执行安装脚本..."
+    chmod +x /opt/app/install.sh
+    bash /opt/app/install.sh
 
 %runscript
-    . /opt/conda/etc/profile.d/conda.sh
+    source /opt/conda/etc/profile.d/conda.sh
     conda activate lm-compose
     exec "$@"
