@@ -14,6 +14,7 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     easyeditor /opt/app/easyeditor
     sparsellm /opt/app/sparsellm
     download.py /opt/app/
+    pyproject.toml /opt/app/
 
 %environment
     export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
