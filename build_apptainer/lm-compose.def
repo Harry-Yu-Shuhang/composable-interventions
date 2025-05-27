@@ -31,21 +31,21 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     bash miniconda.sh -b -p /opt/conda && rm miniconda.sh
     export PATH=/opt/conda/bin:$PATH
 
-    echo "📦 [3/5] 创建环境并预装 PyTorch..."
+    echo "📦 [3/5] 创建环境并安装 PyTorch..."
     /opt/conda/bin/conda create -n lm-compose python=3.11 -y
-    # 用 shell 激活安装，确保 torch 可用
-    source /opt/conda/etc/profile.d/conda.sh
+
+    echo "📦 [4/5] 激活 Conda 环境 + 安装依赖"
+    . /opt/conda/etc/profile.d/conda.sh
     conda activate lm-compose
+
     pip install --no-cache-dir torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 \
         --index-url https://download.pytorch.org/whl/cu118
-
-    echo "📦 [4/5] 安装主项目依赖..."
     pip install -U pip setuptools wheel
     pip install pandas numpy "huggingface_hub[cli]" transformers accelerate gekko packaging==24.0
 
     echo "📦 [5/5] 安装主项目与 AutoGPTQ..."
-    pip install --use-pep517 -e /opt/app/
     export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9"
+    pip install --use-pep517 -e /opt/app/
     pip install --use-pep517 -e /opt/app/AutoGPTQ || echo "❌ AutoGPTQ 安装失败"
 
 %runscript
