@@ -18,25 +18,30 @@ echo "🔍 任务开始: $(date)"
 echo "📂 当前目录: $(pwd)"
 cd "$SLURM_SUBMIT_DIR" || { echo "❌ 无法进入提交目录，退出"; exit 1; }
 
+# ===== 加载 Apptainer 模块 =====
 if [ -f /etc/profile.d/modules.sh ]; then
     source /etc/profile.d/modules.sh || true
     module load apptainer || echo "⚠️ 无法加载 apptainer，确保已安装"
 fi
 
+# ===== 构建镜像 =====
 DEF_FILE="build_apptainer/lm-compose.def"
 SIF_FILE="build_apptainer/lm-compose.sif"
 echo "📦 正在重新构建容器镜像: $SIF_FILE"
 apptainer build --force "$SIF_FILE" "$DEF_FILE"
 
+# ===== 定义模型路径 =====
 MODEL_DIR="/opt/app/models/deepseek-math-7b-instruct"
 OUTPUT_DIR="/opt/app/compressed_models/deepseek-math-7b-gptq"
 
+# ===== 启动主程序 =====
+echo "🚀 开始运行主程序..."
 apptainer exec --nv "$SIF_FILE" \
   python /opt/app/main.py \
-    model_name=$MODEL_DIR \
+    model_name="$MODEL_DIR" \
     interventions=[compress] \
     compress=gptq \
     wbits=4 \
-    output_dir=$OUTPUT_DIR
+    output_dir="$OUTPUT_DIR"
 
 echo "✅ 任务完成: $(date)"
