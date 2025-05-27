@@ -17,4 +17,4 @@ echo "📦 安装主项目..."
 pip install --use-pep517 -e /opt/app/
 
 echo "📦 安装 AutoGPTQ..."
-pip install --use-pep517 -e /opt/app/AutoGPTQ
+pip install --no-build-isolation /opt/app/AutoGPTQ
