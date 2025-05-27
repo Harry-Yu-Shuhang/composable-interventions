@@ -15,14 +15,12 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9"
 
 %post
-    # 基础依赖
     apt-get update && apt-get install -y \
         git build-essential wget curl vim \
         ca-certificates libglib2.0-0 libsm6 libxrender1 libxext6 \
         libssl-dev libffi-dev libstdc++6 cmake ninja-build \
         && apt-get clean
 
-    # 检查 CUDA 编译器
     if ! command -v nvcc &> /dev/null; then
         echo "⚠️ Warning: nvcc not found in PATH. Please ensure CUDA is usable at runtime." >&2
     else
@@ -43,33 +41,34 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     /opt/conda/bin/conda run -n lm-compose pip install \
         pandas numpy "huggingface_hub[cli]" transformers accelerate gekko packaging==24.0
 
-    # 克隆主项目（延迟安装 AutoGPTQ/AWQ）
+    # 克隆主项目
     mkdir -p /workspace && cd /workspace
     git clone https://github.com/Harry-Yu-Shuhang/composable-interventions.git lm-compose
     cd lm-compose
     /opt/conda/bin/conda run -n lm-compose pip install -e .
 
+    # 拷贝主程序到不依赖 bind mount 的目录
+    mkdir -p /opt/app
+    cp main.py /opt/app/
+    cp -r models /opt/app/ || true  # 如果需要模型目录
+
 %runscript
-    echo "✅ 容器启动成功！当前目录: $(pwd)"
+    echo "✅ 容器启动成功！"
 
     source /opt/conda/etc/profile.d/conda.sh
     conda activate lm-compose
+    cd /opt/app
 
-    export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9"
-
-
-    # 安装 AutoGPTQ（如未安装）
+    # 安装 AutoGPTQ（如未装）
     if ! python -c "import auto_gptq" 2>/dev/null; then
         echo "📦 安装 AutoGPTQ..."
-        cd /workspace/lm-compose/AutoGPTQ
-        pip install -e . || echo "❌ AutoGPTQ 安装失败，请检查 CUDA 与编译器配置"
+        cd /workspace/lm-compose/AutoGPTQ && pip install -e .
     fi
 
-    # 安装 AutoAWQ（如未安装）
+    # 安装 AutoAWQ（如未装）
     if ! python -c "import awq" 2>/dev/null; then
         echo "📦 安装 AutoAWQ..."
-        cd /workspace/lm-compose/AutoAWQ
-        pip install -e .
+        cd /workspace/lm-compose/AutoAWQ && pip install -e .
     fi
 
     exec "$@"

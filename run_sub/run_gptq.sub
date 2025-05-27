@@ -30,15 +30,11 @@ SIF_FILE="run_sub/lm-compose.sif"
 echo "📦 正在重新构建容器镜像: $SIF_FILE"
 apptainer build --force "$SIF_FILE" "$DEF_FILE"
 
-# ===== HuggingFace 模型下载（如缺）=====
-MODEL_NAME="deepseek-ai/deepseek-math-7b-instruct"
-MODEL_DIR="models/deepseek-math-7b-instruct"
-
-# ===== 执行主程序 =====
-apptainer exec --nv --bind "$PWD":/workspace "$SIF_FILE" \
-  bash -c "cd /workspace && conda run -n lm-compose \
+# ===== 执行主程序（模型路径已复制到 image 内部）=====
+apptainer exec --nv "$SIF_FILE" \
+  bash -c "cd /opt/app && conda run -n lm-compose \
     python main.py \
-      model_name=$MODEL_DIR \
+      model_name=/opt/app/models/deepseek-math-7b-instruct \
       interventions=[compress] \
       compress=gptq \
       wbits=4 \
