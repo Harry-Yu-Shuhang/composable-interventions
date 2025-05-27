@@ -1,3 +1,4 @@
+# ===== File: run_sub/lm-compose.def =====
 Bootstrap: docker
 From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 
@@ -13,6 +14,7 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     export PATH=/opt/conda/bin:$PATH
     export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
     export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9"
+    export PYTHONPATH=/opt/app:$PYTHONPATH
 
 %post
     apt-get update && apt-get install -y \
@@ -27,12 +29,10 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
         echo "✅ nvcc detected: $(which nvcc)"
     fi
 
-    # 安装 Conda
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
     bash miniconda.sh -b -p /opt/conda && rm miniconda.sh
     export PATH=/opt/conda/bin:$PATH
 
-    # 创建 Conda 环境并安装依赖
     /opt/conda/bin/conda create -n lm-compose python=3.11 -y
     /opt/conda/bin/conda run -n lm-compose pip install --no-cache-dir \
         torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 \
@@ -41,34 +41,14 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     /opt/conda/bin/conda run -n lm-compose pip install \
         pandas numpy "huggingface_hub[cli]" transformers accelerate gekko packaging==24.0
 
-    # 克隆主项目
-    mkdir -p /workspace && cd /workspace
-    git clone https://github.com/Harry-Yu-Shuhang/composable-interventions.git lm-compose
-    cd lm-compose
-    /opt/conda/bin/conda run -n lm-compose pip install -e .
-
-    # 拷贝主程序到不依赖 bind mount 的目录
     mkdir -p /opt/app
-    cp main.py /opt/app/
-    cp -r models /opt/app/ || true  # 如果需要模型目录
+    cp /workspace/lm-compose/main.py /opt/app/
+    cp /workspace/lm-compose/main_quantize.py /opt/app/
+    cp -r /workspace/models /opt/app/models || true
 
 %runscript
-    echo "✅ 容器启动成功！"
-
+    echo "✅ 容器启动成功！当前目录: $(pwd)"
     source /opt/conda/etc/profile.d/conda.sh
     conda activate lm-compose
-    cd /opt/app
 
-    # 安装 AutoGPTQ（如未装）
-    if ! python -c "import auto_gptq" 2>/dev/null; then
-        echo "📦 安装 AutoGPTQ..."
-        cd /workspace/lm-compose/AutoGPTQ && pip install -e .
-    fi
-
-    # 安装 AutoAWQ（如未装）
-    if ! python -c "import awq" 2>/dev/null; then
-        echo "📦 安装 AutoAWQ..."
-        cd /workspace/lm-compose/AutoAWQ && pip install -e .
-    fi
-
-    exec "$@"
+    python /opt/app/main.py "$@"
