@@ -12,7 +12,6 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     conf /opt/app/conf
     utils /opt/app/utils
     easyeditor /opt/app/easyeditor
-    trainer /opt/app/trainer
     sparsellm /opt/app/sparsellm
     download.py /opt/app/
 
