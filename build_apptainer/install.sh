@@ -5,6 +5,8 @@ echo "📦 激活 Conda 环境..."
 source /opt/conda/etc/profile.d/conda.sh
 conda activate lm-compose
 
+export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9"
+
 echo "📦 安装 PyTorch..."
 pip install --no-cache-dir torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 \
     --index-url https://download.pytorch.org/whl/cu118
