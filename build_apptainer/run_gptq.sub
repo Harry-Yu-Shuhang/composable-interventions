@@ -1,6 +1,5 @@
 #!/bin/bash
 #SBATCH --partition=a100
-#SBATCH --nodelist=aisurrey23
 #SBATCH --job-name=gptq_deepseek
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -8,8 +7,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --time=12:00:00
 #SBATCH --mem=128G
-#SBATCH --output=logs/deepseek_apptainer/output.log
-#SBATCH --error=logs/deepseek_apptainer/error.log
+#SBATCH --output=logs/deepseek-math-7b-instruct/output_apptainer.log
+#SBATCH --error=logs/deepseek-math-7b-instruct/error_apptainer.log
 
 set -eEuo pipefail
 trap 'echo "❌ 任务失败: 行号 $LINENO，退出码 $?"; exit 1' ERR
@@ -24,29 +23,31 @@ if [ -f /etc/profile.d/modules.sh ]; then
     module load apptainer || echo "⚠️ 无法加载 apptainer，确保已安装"
 fi
 
-# ===== 检查并构建镜像（如果需要）=====
+# ===== 构建镜像（仅当必要时）=====
 DEF_FILE="build_apptainer/lm-compose.def"
 SIF_FILE="build_apptainer/lm-compose.sif"
 
 if [ ! -f "$SIF_FILE" ] || [ "$DEF_FILE" -nt "$SIF_FILE" ]; then
-    echo "📦 发现 .def 更新或镜像不存在，开始构建: $SIF_FILE"
+    echo "📦 构建容器镜像: $SIF_FILE"
     apptainer build --force "$SIF_FILE" "$DEF_FILE"
 else
-    echo "✅ 容器镜像已是最新: $SIF_FILE"
+    echo "✅ 镜像已是最新: $SIF_FILE"
 fi
 
-# ===== 定义模型路径 =====
+# ===== 启动主程序 =====
 MODEL_DIR="/opt/app/models/deepseek-math-7b-instruct"
 OUTPUT_DIR="/opt/app/compressed_models/deepseek-math-7b-gptq"
 
-# ===== 启动主程序 =====
-echo "🚀 开始运行主程序..."
-apptainer exec --nv "$SIF_FILE" \
-  python /opt/app/main.py \
-    model_name="$MODEL_DIR" \
-    interventions=[compress] \
-    compress=gptq \
-    wbits=4 \
-    output_dir="$OUTPUT_DIR"
+echo "🚀 运行主程序..."
+apptainer exec --nv "$SIF_FILE" bash -c "
+    source /opt/conda/etc/profile.d/conda.sh &&
+    conda activate lm-compose &&
+    python /opt/app/main.py \
+        model_name='$MODEL_DIR' \
+        interventions=[compress] \
+        compress=gptq \
+        wbits=4 \
+        output_dir='$OUTPUT_DIR'
+"
 
 echo "✅ 任务完成: $(date)"
