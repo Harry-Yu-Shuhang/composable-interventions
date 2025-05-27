@@ -24,15 +24,15 @@ if [ -f /etc/profile.d/modules.sh ]; then
     module load apptainer || echo "⚠️ 无法加载 apptainer，确保已安装"
 fi
 
+# ===== 检查并构建镜像（如果需要）=====
 DEF_FILE="build_apptainer/lm-compose.def"
 SIF_FILE="build_apptainer/lm-compose.sif"
 
-# ===== 判断是否需要重新构建镜像 =====
 if [ ! -f "$SIF_FILE" ] || [ "$DEF_FILE" -nt "$SIF_FILE" ]; then
     echo "📦 发现 .def 更新或镜像不存在，开始构建: $SIF_FILE"
     apptainer build --force "$SIF_FILE" "$DEF_FILE"
 else
-    echo "✅ 镜像未变更，跳过构建: $SIF_FILE"
+    echo "✅ 容器镜像已是最新: $SIF_FILE"
 fi
 
 # ===== 定义模型路径 =====
