@@ -8,7 +8,7 @@ from transformers.models.mistral.modeling_mistral import (
     MistralDecoderLayer as OldMistralDecoderLayer,
     MistralForCausalLM as OldMistralForCausalLM,
 )
-from awq.modules.fused.norm import FasterTransformerRMSNorm
+from ..modules.fused.norm import FasterTransformerRMSNorm
 
 
 class MistralAWQForCausalLM(BaseAWQForCausalLM):
