@@ -1,23 +1,14 @@
 import torch
 
-from ..modules.linear import (
+from awq.modules.linear import (
     WQLinear_GEMM,
     WQLinear_GEMV,
     WQLinear_Marlin,
     WQLinear_Exllama,
     WQLinear_ExllamaV2,
     WQLinear_GEMVFast,
-    WQLinear_QBits,
+    WQLinear_IPEX,
 )
-
-
-def prepare_correct_devices(next_layer, hidden_states, mask):
-    hidden_states = hidden_states.to(next_layer.device)
-
-    if mask is not None:
-        mask = mask.to(next_layer.device)
-
-    return hidden_states, mask
 
 
 def prepare_cache(blocks, seqlen: int) -> int:
@@ -51,15 +42,6 @@ def prepare_input_ids(input_ids: torch.Tensor, last_forward_num_tokens: int):
     return input_ids, last_forward_num_tokens + num_new_tokens
 
 
-def prepare_attention_mask(seqlen, start_pos, device, type_as: torch.Tensor):
-    mask = None
-    if seqlen > 1:
-        mask = torch.full((1, 1, seqlen, seqlen), float("-inf"), device=device)
-        mask = torch.triu(mask, diagonal=start_pos + 1).type_as(type_as)
-
-    return mask
-
-
 def fuse_qkv(module, q_proj, k_proj, v_proj):
     bias = (
         torch.cat([q_proj.bias, k_proj.bias, v_proj.bias], dim=0)
@@ -67,7 +49,9 @@ def fuse_qkv(module, q_proj, k_proj, v_proj):
         else None
     )
 
-    if isinstance(q_proj, WQLinear_GEMV):
+    if isinstance(q_proj, WQLinear_IPEX):
+        q_linear = WQLinear_IPEX
+    elif isinstance(q_proj, WQLinear_GEMV):
         q_linear = WQLinear_GEMV
     elif isinstance(q_proj, WQLinear_GEMM):
         q_linear = WQLinear_GEMM
@@ -79,28 +63,15 @@ def fuse_qkv(module, q_proj, k_proj, v_proj):
         q_linear = WQLinear_Marlin
     elif isinstance(q_proj, WQLinear_GEMVFast):
         q_linear = WQLinear_GEMVFast
-    elif isinstance(q_proj, WQLinear_QBits):
-        q_linear = WQLinear_QBits
 
-    if isinstance(q_proj, WQLinear_QBits):
-        qkv_layer = q_linear(
-            q_proj.w_bit,
-            q_proj.group_size,
-            q_proj.in_features,
-            q_proj.out_features + k_proj.out_features + v_proj.out_features,
-            q_proj.bias is not None,
-            q_proj.zero_point,
-            next(iter(module.state_dict().values())).device,
-        )
-    else:
-        qkv_layer = q_linear(
-            q_proj.w_bit,
-            q_proj.group_size,
-            q_proj.in_features,
-            q_proj.out_features + k_proj.out_features + v_proj.out_features,
-            q_proj.bias is not None,
-            next(iter(module.state_dict().values())).device,
-        )
+    qkv_layer = q_linear(
+        q_proj.w_bit,
+        q_proj.group_size,
+        q_proj.in_features,
+        q_proj.out_features + k_proj.out_features + v_proj.out_features,
+        q_proj.bias is not None,
+        next(iter(module.state_dict().values())).device,
+    )
 
     if isinstance(q_proj, WQLinear_GEMV):
         qkv_layer.qweight = torch.cat(
@@ -113,7 +84,7 @@ def fuse_qkv(module, q_proj, k_proj, v_proj):
             [q_proj.scales, k_proj.scales, v_proj.scales], dim=0
         )
         qkv_layer.split_k_iters = q_proj.split_k_iters
-    elif isinstance(q_proj, WQLinear_GEMM) or isinstance(q_proj, WQLinear_QBits):
+    elif isinstance(q_proj, WQLinear_GEMM) or isinstance(q_proj, WQLinear_IPEX):
         qkv_layer.qweight = torch.cat(
             [q_proj.qweight, k_proj.qweight, v_proj.qweight], dim=1
         )
@@ -192,28 +163,13 @@ def fuse_linears(linears, device, dim=1, operation=torch.cat):
 
 
 def get_attention_shapes(
-    attention_shapes, max_seq_len, cache_batch_size, n_heads, n_kv_heads, head_dim
+    attention_shapes, n_heads, n_kv_heads, head_dim
 ):
     if attention_shapes is not None:
         attention_shapes = attention_shapes
 
     elif n_kv_heads == 0:
         attention_shapes = {
-            # following fastertransformer definition
-            "cache_v": (
-                cache_batch_size,
-                n_heads,
-                max_seq_len,
-                head_dim,
-            ),
-            # 8: pack 8 fp16 in FT, if fp32 then use 4
-            "cache_k": (
-                cache_batch_size,
-                n_heads,
-                head_dim // 8,
-                max_seq_len,
-                8,
-            ),
             "xqkv_view": (-1, n_heads, head_dim),
             "xq_slice": lambda xqkv: xqkv[:, :, 0],
             "xk_slice": lambda xqkv: xqkv[:, :, 1],
@@ -229,21 +185,6 @@ def get_attention_shapes(
 
     else:
         attention_shapes = {
-            # following fastertransformer definition
-            "cache_v": (
-                cache_batch_size,
-                n_kv_heads,
-                max_seq_len,
-                head_dim,
-            ),
-            # 8: pack 8 fp16 in FT, if fp32 then use 4
-            "cache_k": (
-                cache_batch_size,
-                n_kv_heads,
-                head_dim // 8,
-                max_seq_len,
-                8,
-            ),
             "xqkv_view": (n_heads + n_kv_heads * 2, head_dim),
             "xq_slice": lambda xqkv: xqkv[:, :, 0:n_heads],
             "xk_slice": lambda xqkv: xqkv[:, :, n_heads : (n_heads + n_kv_heads)],

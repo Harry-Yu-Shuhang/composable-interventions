@@ -33,6 +33,7 @@ class FalconAWQForCausalLM(BaseAWQForCausalLM):
     @staticmethod
     def move_embed(model: FalconForCausalLM, device):
         model.transformer.word_embeddings = model.transformer.word_embeddings.to(device)
+        model.transformer.rotary_emb = model.transformer.rotary_emb.to(device)
 
     @staticmethod
     def get_layers_for_scaling(
@@ -83,8 +84,8 @@ class FalconAWQForCausalLM(BaseAWQForCausalLM):
         return layers
 
 
-from ..modules.fused.model import FalconModel
-from ..modules.fused.block import FalconDecoderLayer
+from awq.modules.fused.model import FalconModel
+from awq.modules.fused.block import FalconDecoderLayer
 
 
 class FalconFuser:

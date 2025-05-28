@@ -1,14 +1,14 @@
 import tqdm
 from typing import List, Tuple
 from .base import BaseAWQForCausalLM
-from ..utils.fused_utils import fuse_qkv
-from ..modules.fused.block import LlamaLikeBlock
-from ..modules.fused.model import LlamaLikeModel
+from awq.utils.fused_utils import fuse_qkv
+from awq.modules.fused.block import LlamaLikeBlock
+from awq.modules.fused.model import LlamaLikeModel
 from transformers.models.mistral.modeling_mistral import (
     MistralDecoderLayer as OldMistralDecoderLayer,
     MistralForCausalLM as OldMistralForCausalLM,
 )
-from ..modules.fused.norm import FasterTransformerRMSNorm
+from awq.modules.fused.norm import FasterTransformerRMSNorm
 
 
 class MistralAWQForCausalLM(BaseAWQForCausalLM):
@@ -127,6 +127,7 @@ class MistralFuser:
                     norm_2=norm_2,
                     dev=device,
                     max_seq_len=self.model.config.max_seq_len,
+                    rope_theta=self.model.config.rope_theta,
                 )
             )
 

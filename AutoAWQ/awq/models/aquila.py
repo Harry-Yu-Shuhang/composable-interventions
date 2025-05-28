@@ -1,14 +1,14 @@
 import tqdm
 from typing import List, Tuple
 from .base import BaseAWQForCausalLM
-from ..utils.fused_utils import fuse_qkv
-from ..modules.fused.block import LlamaLikeBlock
-from ..modules.fused.model import LlamaLikeModel
+from awq.utils.fused_utils import fuse_qkv
+from awq.modules.fused.block import LlamaLikeBlock
+from awq.modules.fused.model import LlamaLikeModel
 from transformers.models.llama.modeling_llama import (
     LlamaDecoderLayer as OldAquilaDecoderLayer,
     LlamaForCausalLM as OldAquilaForCausalLM,
 )
-from ..modules.fused.norm import FasterTransformerRMSNorm
+from awq.modules.fused.norm import FasterTransformerRMSNorm
 
 
 class AquilaAWQForCausalLM(BaseAWQForCausalLM):
@@ -31,6 +31,7 @@ class AquilaAWQForCausalLM(BaseAWQForCausalLM):
     @staticmethod
     def move_embed(model: OldAquilaForCausalLM, device: str):
         model.model.embed_tokens = model.model.embed_tokens.to(device)
+        model.model.rotary_emb = model.model.rotary_emb.to(device)
 
     @staticmethod
     def get_layers_for_scaling(
@@ -127,6 +128,7 @@ class AquilaFuser:
                     norm_2=norm_2,
                     dev=device,
                     max_seq_len=self.model.config.max_seq_len,
+                    rope_theta=self.model.config.rope_theta,
                 )
             )
 

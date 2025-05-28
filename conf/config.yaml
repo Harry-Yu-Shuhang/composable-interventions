@@ -31,7 +31,7 @@ max_length: 50
 batch_size: 50
 
 save: out/
-save_model: "/opt/app/compressed_models/Qwen2.5-32B-Instruct"
+save_model: "Qwen/Qwen2.5-32B-Instruct"
 eval_zero_shot: false
 compress: false
 method: none
@@ -58,4 +58,4 @@ ga_retain_weight: 1
 
 load_ckpt: False
 ckpt_path: null
-save_ckpt: True
+save_ckpt: False

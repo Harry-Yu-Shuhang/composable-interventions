@@ -120,7 +120,7 @@ ROCM_VERSION=5.6 pip install .
 以下展示了使用 `auto_gptq` 进行量化和推理的最简单用法：
 ```python
 from transformers import AutoTokenizer, TextGenerationPipeline
-from AutoGPTQ.auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
+from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
 
 
 pretrained_model_dir = "facebook/opt-125m"
@@ -189,7 +189,7 @@ print(pipeline("auto-gptq is")[0]["generated_text"])
 <summary>以下展示了如何拓展 `auto_gptq` 以支持 `OPT` 模型，如你所见，这非常简单：</summary>
 
 ```python
-from AutoGPTQ.auto_gptq.modeling import BaseGPTQForCausalLM
+from auto_gptq.modeling import BaseGPTQForCausalLM
 
 
 class OPTGPTQForCausalLM(BaseGPTQForCausalLM):
@@ -231,8 +231,8 @@ from functools import partial
 import datasets
 from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
 
-from AutoGPTQ.auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
-from AutoGPTQ.auto_gptq.eval_tasks import SequenceClassificationTask
+from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
+from auto_gptq.eval_tasks import SequenceClassificationTask
 
 
 MODEL = "EleutherAI/gpt-j-6b"
