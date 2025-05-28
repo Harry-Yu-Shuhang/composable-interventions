@@ -72,7 +72,7 @@ apptainer exec --nv "$SIF_FILE" bash -c "
     python /opt/app/main_quantize.py \
         --method quant \
         --quant_method autoawq \
-        --model '$MODEL_DIR' \
+        --model_name '$MODEL_DIR' \
         --save_model '$OUTPUT_DIR_AWQ' \
         --wbits 4 \
         --groupsize 128 \

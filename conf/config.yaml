@@ -4,7 +4,7 @@ defaults:
   - unlearn: none  # Choose any of [rmu]
   - _self_
 
-model_name: meta-llama/Meta-Llama-3-8B # our default llama
+model_name: Qwen/Qwen2.5-32B-Instruct # our default llama
 # model_name: meta-llama/Meta-Llama-3-8B-Instruct
 # model_name: meta-llama/Llama-3.2-1B
 # model_name: microsoft/Phi-3-mini-4k-instruct
@@ -31,7 +31,7 @@ max_length: 50
 batch_size: 50
 
 save: out/
-save_model: null
+save_model: "/opt/app/compressed_models/Qwen2.5-32B-Instruct"
 eval_zero_shot: false
 compress: false
 method: none
@@ -58,4 +58,4 @@ ga_retain_weight: 1
 
 load_ckpt: False
 ckpt_path: null
-save_ckpt: False
+save_ckpt: True

@@ -438,8 +438,9 @@ def main(config):
     
     # Save checkpoint and metadata
     if config.save_ckpt:
-        save_ckpt_meta.save(editable_model, config, timestamp, '/scratch/sux7mp/saved_models/')
-    
+        save_path = config.save_model if config.save_model else '/scratch/sux7mp/saved_models/'
+        save_ckpt_meta.save(editable_model, config, timestamp, save_path)
+        
     # Begin evaluations
     print("Starting eval...")
     print(f"Evaluating QA benchmarks...")
