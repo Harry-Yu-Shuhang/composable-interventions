@@ -6,15 +6,15 @@
 #SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH --time=12:00:00
+#SBATCH --mem=128G
+#SBATCH --output=logs/deepseek-math-7b-instruct/output_apptainer.log
+#SBATCH --error=logs/deepseek-math-7b-instruct/error_apptainer.log
 
+# === 使用变量清空日志（运行时生效）===
 LOG_DIR=logs/deepseek-math-7b-instruct
 OUT_LOG=$LOG_DIR/output_apptainer.log
 ERR_LOG=$LOG_DIR/error_apptainer.log
 
-#SBATCH --output=$OUT_LOG
-#SBATCH --error=$ERR_LOG
-
-# 清空日志（注意：SBATCH 变量替换在提交时完成，脚本执行时还需要显式清空）
 mkdir -p "$LOG_DIR"
 : > "$OUT_LOG"
 : > "$ERR_LOG"
