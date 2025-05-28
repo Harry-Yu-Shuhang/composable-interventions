@@ -1,7 +1,7 @@
 import os
 
 from transformers import AutoTokenizer, TextGenerationPipeline
-from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
+from AutoGPTQ.auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
 import numpy as np
 import torch
 import torch.nn as nn

@@ -2,8 +2,8 @@ import datasets
 from argparse import ArgumentParser
 
 import torch
-from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
-from auto_gptq.eval_tasks import LanguageModelingTask
+from AutoGPTQ.auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
+from AutoGPTQ.auto_gptq.eval_tasks import LanguageModelingTask
 from transformers import AutoTokenizer
 
 

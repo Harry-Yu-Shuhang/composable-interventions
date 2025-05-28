@@ -3,8 +3,8 @@ from peft import TaskType
 from peft.peft_model import PeftModelForCausalLM
 from transformers import AutoTokenizer
 from torch.optim import Adam
-from auto_gptq import AutoGPTQForCausalLM
-from auto_gptq.utils.peft_utils import GPTQLoraConfig, GPTQLoraLinear, GPTQSVDLinear, \
+from AutoGPTQ.auto_gptq import AutoGPTQForCausalLM
+from AutoGPTQ.auto_gptq.utils.peft_utils import GPTQLoraConfig, GPTQLoraLinear, GPTQSVDLinear, \
     GPTQAdaLoraConfig, GPTQAdaLoraModel, \
     get_gptq_peft_model
 from torch.utils.checkpoint import checkpoint

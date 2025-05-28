@@ -7,7 +7,7 @@ from itertools import chain
 from typing import Dict, List, Optional
 
 import torch
-from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
+from AutoGPTQ.auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
 from tqdm import tqdm
 from transformers import AutoTokenizer, GenerationConfig
 from transformers.generation.logits_process import LogitsProcessor

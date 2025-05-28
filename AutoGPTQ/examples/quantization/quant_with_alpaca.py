@@ -4,7 +4,7 @@ import time
 from argparse import ArgumentParser
 
 import torch
-from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
+from AutoGPTQ.auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
 from datasets import Dataset
 from transformers import AutoTokenizer, TextGenerationPipeline
 

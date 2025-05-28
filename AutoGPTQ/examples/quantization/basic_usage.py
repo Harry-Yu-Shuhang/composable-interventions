@@ -1,7 +1,7 @@
 import os
 
 from transformers import AutoTokenizer, TextGenerationPipeline
-from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
+from AutoGPTQ.auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
 
 
 pretrained_model_dir = "facebook/opt-125m"

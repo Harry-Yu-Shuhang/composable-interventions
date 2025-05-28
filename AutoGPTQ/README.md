@@ -116,7 +116,7 @@ The following combinations are tested:
 Below is an example for the simplest use of `auto_gptq` to quantize a model and inference after quantization:
 ```python
 from transformers import AutoTokenizer, TextGenerationPipeline
-from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
+from AutoGPTQ.auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
 import logging
 
 logging.basicConfig(
@@ -187,7 +187,7 @@ For more advanced features of model quantization, please reference to [this scri
 <summary>Below is an example to extend `auto_gptq` to support `OPT` model, as you will see, it's very easy:</summary>
 
 ```python
-from auto_gptq.modeling import BaseGPTQForCausalLM
+from AutoGPTQ.auto_gptq.modeling import BaseGPTQForCausalLM
 
 
 class OPTGPTQForCausalLM(BaseGPTQForCausalLM):
@@ -228,8 +228,8 @@ from functools import partial
 import datasets
 from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
 
-from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
-from auto_gptq.eval_tasks import SequenceClassificationTask
+from AutoGPTQ.auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
+from AutoGPTQ.auto_gptq.eval_tasks import SequenceClassificationTask
 
 
 MODEL = "EleutherAI/gpt-j-6b"

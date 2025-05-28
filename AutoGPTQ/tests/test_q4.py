@@ -1,18 +1,18 @@
 import unittest
 from parameterized import parameterized
 import torch
-from auto_gptq.utils.import_utils import dynamically_import_QuantLinear
+from AutoGPTQ.auto_gptq.utils.import_utils import dynamically_import_QuantLinear
 
-from auto_gptq.nn_modules.qlinear.qlinear_exllama import QuantLinear
+from AutoGPTQ.auto_gptq.nn_modules.qlinear.qlinear_exllama import QuantLinear
 
 try:
     from exllama_kernels import prepare_buffers, set_tuning_params
 except ImportError as e:
     print(f"[WARNING] Could not load exllama_kernels: {e}")
 
-from auto_gptq import AutoGPTQForCausalLM, exllama_set_max_input_length
-from auto_gptq.modeling._utils import autogptq_post_init
-from auto_gptq.modeling._const import EXLLAMA_DEFAULT_MAX_INPUT_LENGTH
+from AutoGPTQ.auto_gptq import AutoGPTQForCausalLM, exllama_set_max_input_length
+from AutoGPTQ.auto_gptq.modeling._utils import autogptq_post_init
+from AutoGPTQ.auto_gptq.modeling._const import EXLLAMA_DEFAULT_MAX_INPUT_LENGTH
 
 from transformers import AutoTokenizer
 
@@ -565,7 +565,7 @@ class TestsQ4ExllamaV2(unittest.TestCase):
         6.2578, 7.0625, 7.2148, 6.4961, 7.0703, 6.4727, 7.3906]).to(torch.float16)
 
     def test_exllamav2(self):
-        from auto_gptq.nn_modules.qlinear.qlinear_exllamav2 import QuantLinear
+        from AutoGPTQ.auto_gptq.nn_modules.qlinear.qlinear_exllamav2 import QuantLinear
         
         group_size = 128
 

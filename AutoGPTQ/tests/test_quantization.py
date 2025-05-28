@@ -3,7 +3,7 @@ import tempfile
 
 from transformers import AutoTokenizer
 
-from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
+from AutoGPTQ.auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
 
 class TestQuantization(unittest.TestCase):
     def test_quantize(self):

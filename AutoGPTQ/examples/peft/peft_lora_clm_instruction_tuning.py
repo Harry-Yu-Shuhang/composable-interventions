@@ -9,9 +9,9 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import AutoTokenizer, get_linear_schedule_with_warmup
 
-from auto_gptq import AutoGPTQForCausalLM, get_gptq_peft_model
-from auto_gptq.utils.data_utils import make_data_block, collate_data
-from auto_gptq.utils.peft_utils import GPTQLoraConfig
+from AutoGPTQ.auto_gptq import AutoGPTQForCausalLM, get_gptq_peft_model
+from AutoGPTQ.auto_gptq.utils.data_utils import make_data_block, collate_data
+from AutoGPTQ.auto_gptq.utils.peft_utils import GPTQLoraConfig
 from peft import TaskType
 
 parser = ArgumentParser()

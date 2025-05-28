@@ -3,8 +3,8 @@ from functools import partial
 
 import datasets
 import torch
-from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
-from auto_gptq.eval_tasks import SequenceClassificationTask
+from AutoGPTQ.auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
+from AutoGPTQ.auto_gptq.eval_tasks import SequenceClassificationTask
 from transformers import AutoTokenizer
 
 

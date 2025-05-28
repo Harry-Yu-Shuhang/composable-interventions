@@ -3,8 +3,8 @@ from argparse import ArgumentParser
 
 import datasets
 import torch
-from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
-from auto_gptq.eval_tasks import TextSummarizationTask
+from AutoGPTQ.auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
+from AutoGPTQ.auto_gptq.eval_tasks import TextSummarizationTask
 from transformers import AutoTokenizer, GenerationConfig
 
 

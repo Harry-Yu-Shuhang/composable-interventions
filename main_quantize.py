@@ -18,13 +18,13 @@ from sparsellm.lib.modelutils import *
 from sparsellm.lib.quant import *
 #from sparsellm.lib.quant_llama import llama_pack3, llamaQuanti,llama_eval
 #from awq.utils.lm_eval_adaptor import LMEvalAdaptor
-from awq import AutoAWQForCausalLM
+from AutoAWQ.awq import AutoAWQForCausalLM
 
 DEV = torch.device('cuda:0')
 from calflops.calflops import calculate_flops
 from transformers import AutoTokenizer, TextGenerationPipeline
-from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
-from auto_gptq.utils import Perplexity
+from AutoGPTQ.auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
+from AutoGPTQ.auto_gptq.utils import Perplexity
 class Evaluator:
     def __init__(self, dataset, tokenizer):
         self.dataset = dataset

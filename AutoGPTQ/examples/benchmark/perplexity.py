@@ -2,7 +2,7 @@ import os
 import argparse
 
 import torch
-from auto_gptq.utils import Perplexity
+from AutoGPTQ.auto_gptq.utils import Perplexity
 from transformers import AutoTokenizer
 
 if __name__ == "__main__":
@@ -61,7 +61,7 @@ if __name__ == "__main__":
         print("The argument --use_safetensors is deprecrated and will be removed in the next release. It is now the default behavior.")
 
     if args.is_quantized:
-        from auto_gptq import AutoGPTQForCausalLM
+        from AutoGPTQ.auto_gptq import AutoGPTQForCausalLM
 
         model = AutoGPTQForCausalLM.from_quantized(
             args.model_name,

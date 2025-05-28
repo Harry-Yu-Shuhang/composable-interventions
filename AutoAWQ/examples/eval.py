@@ -1,6 +1,6 @@
 import argparse
 from lm_eval import evaluator
-from awq import AutoAWQForCausalLM
+from AutoAWQ.awq import AutoAWQForCausalLM
 from transformers import AutoTokenizer
 from awq.utils.lm_eval_adaptor import LMEvalAdaptor
 from awq.utils.eval_utils import evaluate_perplexity
