@@ -1,9 +1,9 @@
 import tqdm
 from typing import List, Tuple
 from .base import BaseAWQForCausalLM
-from awq.utils.fused_utils import fuse_qkv
-from awq.modules.fused.block import LlamaLikeBlock
-from awq.modules.fused.model import LlamaLikeModel
+from ..utils.fused_utils import fuse_qkv
+from ..modules.fused.block import LlamaLikeBlock
+from ..modules.fused.model import LlamaLikeModel
 from transformers.models.mistral.modeling_mistral import (
     MistralDecoderLayer as OldMistralDecoderLayer,
     MistralForCausalLM as OldMistralForCausalLM,

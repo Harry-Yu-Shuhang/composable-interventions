@@ -83,8 +83,8 @@ class FalconAWQForCausalLM(BaseAWQForCausalLM):
         return layers
 
 
-from awq.modules.fused.model import FalconModel
-from awq.modules.fused.block import FalconDecoderLayer
+from ..modules.fused.model import FalconModel
+from ..modules.fused.block import FalconDecoderLayer
 
 
 class FalconFuser:

@@ -1,10 +1,10 @@
 import tqdm
 from typing import List, Tuple
 from .base import BaseAWQForCausalLM
-from awq.utils.fused_utils import fuse_qkv
-from awq.modules.fused.block import LlamaLikeBlock
-from awq.modules.fused.model import LlamaLikeModel
-from awq.modules.fused.norm import FasterTransformerRMSNorm
+from ..utils.fused_utils import fuse_qkv
+from ..modules.fused.block import LlamaLikeBlock
+from ..modules.fused.model import LlamaLikeModel
+from ..modules.fused.norm import FasterTransformerRMSNorm
 
 
 class YiAWQForCausalLM(BaseAWQForCausalLM):
