@@ -1,4 +1,49 @@
-# ===== 路径定义 =====
+#!/bin/bash
+#SBATCH --partition=a100
+#SBATCH --job-name=qwen_gptq_awq
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --gpus-per-node=1
+#SBATCH --cpus-per-task=8
+#SBATCH --time=12:00:00
+#SBATCH --mem=128G
+#SBATCH --output=logs/qwen2.5-32b-instruct/output_apptainer.log
+#SBATCH --error=logs/qwen2.5-32b-instruct/error_apptainer.log
+
+# === 使用变量清空日志 ===
+LOG_DIR=logs/qwen2.5-32b-instruct
+OUT_LOG=$LOG_DIR/output_apptainer.log
+ERR_LOG=$LOG_DIR/error_apptainer.log
+
+mkdir -p "$LOG_DIR"
+: > "$OUT_LOG"
+: > "$ERR_LOG"
+
+set -eEuo pipefail
+trap 'echo "❌ 任务失败: 行号 $LINENO，退出码 $?"; exit 1' ERR
+
+echo "🔍 任务开始: $(date)"
+echo "📂 当前目录: $(pwd)"
+cd "$SLURM_SUBMIT_DIR" || { echo "❌ 无法进入提交目录，退出"; exit 1; }
+
+# ===== 加载 Apptainer 模块 =====
+if [ -f /etc/profile.d/modules.sh ]; then
+    source /etc/profile.d/modules.sh || true
+    module load apptainer || echo "⚠️ 无法加载 apptainer，确保已安装"
+fi
+
+# ===== 构建镜像（仅当必要时）=====
+DEF_FILE="build_apptainer/lm-compose.def"
+SIF_FILE="build_apptainer/lm-compose.sif"
+
+if [ ! -f "$SIF_FILE" ] || [ "$DEF_FILE" -nt "$SIF_FILE" ]; then
+    echo "📦 构建容器镜像: $SIF_FILE"
+    apptainer build --force "$SIF_FILE" "$DEF_FILE"
+else
+    echo "✅ 镜像已是最新: $SIF_FILE"
+fi
+
+# ===== 模型与输出路径 =====
 REMOTE_MODEL="Qwen/Qwen2.5-32B-Instruct"
 OUTPUT_DIR_GPTQ="/opt/app/compressed_models/qwen2.5-32b-gptq"
 OUTPUT_DIR_AWQ="/opt/app/compressed_models/qwen2.5-32b-awq"
@@ -33,3 +78,5 @@ apptainer exec --nv "$SIF_FILE" bash -c "
         --groupsize 128 \
         --zero_point
 "
+
+echo "✅ 所有压缩完成: $(date)"
