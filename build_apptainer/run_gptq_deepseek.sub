@@ -52,6 +52,7 @@ echo "🚀 运行主程序..."
 apptainer exec --nv "$SIF_FILE" bash -c "
     source /opt/conda/etc/profile.d/conda.sh &&
     conda activate lm-compose &&
+    export PYTHONPATH=/opt/app &&
     python /opt/app/main.py \
         model_name='$MODEL_DIR' \
         interventions=[compress] \
@@ -59,5 +60,3 @@ apptainer exec --nv "$SIF_FILE" bash -c "
         wbits=4 \
         output_dir='$OUTPUT_DIR'
 "
-
-echo "✅ 任务完成: $(date)"
