@@ -1,0 +1,35 @@
+# ===== 路径定义 =====
+REMOTE_MODEL="Qwen/Qwen2.5-32B-Instruct"
+OUTPUT_DIR_GPTQ="/opt/app/compressed_models/qwen2.5-32b-gptq"
+OUTPUT_DIR_AWQ="/opt/app/compressed_models/qwen2.5-32b-awq"
+
+# ===== GPTQ 压缩 =====
+echo "🚀 开始 GPTQ 压缩..."
+apptainer exec --nv "$SIF_FILE" bash -c "
+    source /opt/conda/etc/profile.d/conda.sh &&
+    conda activate lm-compose &&
+    export PYTHONPATH=/opt/app &&
+    python /opt/app/main_quantize.py \
+        --method quant \
+        --quant_method autogptq \
+        --model '$REMOTE_MODEL' \
+        --save_model '$OUTPUT_DIR_GPTQ' \
+        --wbits 4 \
+        --groupsize 128
+"
+
+# ===== AWQ 压缩 =====
+echo "🚀 开始 AWQ 压缩..."
+apptainer exec --nv "$SIF_FILE" bash -c "
+    source /opt/conda/etc/profile.d/conda.sh &&
+    conda activate lm-compose &&
+    export PYTHONPATH=/opt/app &&
+    python /opt/app/main_quantize.py \
+        --method quant \
+        --quant_method autoawq \
+        --model '$REMOTE_MODEL' \
+        --save_model '$OUTPUT_DIR_AWQ' \
+        --wbits 4 \
+        --groupsize 128 \
+        --zero_point
+"
