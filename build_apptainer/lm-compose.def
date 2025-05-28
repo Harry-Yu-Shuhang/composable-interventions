@@ -51,6 +51,8 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 
     echo "📦 [4/4] 执行安装脚本..."
     chmod +x /opt/app/install.sh
+    source /opt/conda/etc/profile.d/conda.sh  
+    conda activate lm-compose        
     bash /opt/app/install.sh
 
 %runscript
