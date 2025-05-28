@@ -11,12 +11,11 @@ echo "📦 安装 PyTorch..."
 pip install --no-cache-dir torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 \
     --index-url https://download.pytorch.org/whl/cu118
 
-echo "📦 安装 Python 基础依赖..."
+echo "📦 升级 pip 工具链..."
 pip install -U pip setuptools wheel
-pip install pandas numpy huggingface_hub[cli] transformers accelerate gekko packaging==24.0
 
-echo "📦 安装主项目..."
-pip install --use-pep517 -e /opt/app/
+echo "📦 安装主项目及依赖（从 pyproject.toml 控制版本）..."
+pip install --no-cache-dir --use-pep517 -e /opt/app/
 
 echo "📦 安装 AutoGPTQ..."
 pip install --no-build-isolation /opt/app/AutoGPTQ
