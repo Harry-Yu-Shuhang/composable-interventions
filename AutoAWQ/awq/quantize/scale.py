@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 from typing import Tuple, List
-from awq.modules.act import ScaledActivation
-from awq.utils.module import get_op_by_name, set_op_by_name
+from  ..modules.act import ScaledActivation
+from ..utils.module import get_op_by_name, set_op_by_name
 from transformers.models.bloom.modeling_bloom import BloomGelu
 from transformers.models.llama.modeling_llama import LlamaRMSNorm
 from transformers.activations import NewGELUActivation, PytorchGELUTanh, GELUActivation

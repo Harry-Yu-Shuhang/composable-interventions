@@ -1,9 +1,9 @@
 import argparse
 from lm_eval import evaluator
-from AutoAWQ.awq import AutoAWQForCausalLM
+from ..awq import AutoAWQForCausalLM
 from transformers import AutoTokenizer
-from awq.utils.lm_eval_adaptor import LMEvalAdaptor
-from awq.utils.eval_utils import evaluate_perplexity
+from ..awq.utils.lm_eval_adaptor import LMEvalAdaptor
+from ..awq.utils.eval_utils import evaluate_perplexity
 
 def run_eval(
         model_path, quant_file, device, tasks, task_batch_size, task_n_shot,

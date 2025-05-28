@@ -6,13 +6,13 @@ import torch.nn as nn
 from tqdm import tqdm
 from typing import List, Union
 from safetensors.torch import save_file
-from awq.models._config import AwqConfig
-from awq.modules.act import ScaledActivation
+from ..models._config import AwqConfig
+from ..modules.act import ScaledActivation
 from huggingface_hub import snapshot_download
-from awq.quantize.quantizer import AwqQuantizer
+from ..quantize.quantizer import AwqQuantizer
 from transformers.modeling_utils import shard_checkpoint
-from awq.modules.linear import WQLinear_GEMM, WQLinear_GEMV
-from awq.utils.module import get_named_linears, set_op_by_name
+from ..modules.linear import WQLinear_GEMM, WQLinear_GEMV
+from ..utils.module import get_named_linears, set_op_by_name
 from transformers import (
     AutoModelForCausalLM,
     AutoConfig,

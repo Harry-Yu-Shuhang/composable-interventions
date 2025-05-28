@@ -3,8 +3,8 @@ import math
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-from awq.modules.fused.cache import WindowedCache
-from awq.utils.fused_utils import get_attention_shapes
+from ...modules.fused.cache import WindowedCache
+from ...utils.fused_utils import get_attention_shapes
 
 
 try:

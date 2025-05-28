@@ -34,6 +34,7 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     export CONDA_DEFAULT_ENV=lm-compose
 
 %post
+    SHELL=/bin/bash
     echo "📦 [1/4] 安装系统依赖..."
     apt-get update && apt-get install -y \
         git build-essential wget curl vim \
@@ -49,13 +50,11 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     echo "📦 [3/4] 创建 Conda 环境..."
     /opt/conda/bin/conda create -n lm-compose python=3.11 -y
 
-    echo "📦 [4/4] 执行安装脚本..."
+    echo "📦 [4/4] 安装主项目..."
     chmod +x /opt/app/install.sh
-    source /opt/conda/etc/profile.d/conda.sh  
-    conda activate lm-compose        
-    bash /opt/app/install.sh
+    /opt/conda/bin/conda run -n lm-compose bash /opt/app/install.sh
 
 %runscript
-    source /opt/conda/etc/profile.d/conda.sh
+    . /opt/conda/etc/profile.d/conda.sh
     conda activate lm-compose
     exec "$@"

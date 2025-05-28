@@ -2,8 +2,8 @@ import torch
 import warnings
 import torch.nn as nn
 from torch.autograd import Function
-from awq.utils.utils import get_best_device
-from awq.utils.packing_utils import dequantize_gemm
+from ...utils.utils import get_best_device
+from ...utils.packing_utils import dequantize_gemm
 
 try:
     import awq_ext  # with CUDA kernels (AutoAWQ_kernels)

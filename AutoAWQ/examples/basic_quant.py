@@ -1,4 +1,4 @@
-from AutoAWQ.awq import AutoAWQForCausalLM
+from ..awq import AutoAWQForCausalLM
 from transformers import AutoTokenizer
 
 model_path = 'lmsys/vicuna-7b-v1.5'

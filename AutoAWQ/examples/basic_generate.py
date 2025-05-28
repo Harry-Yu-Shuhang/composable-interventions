@@ -1,4 +1,4 @@
-from AutoAWQ.awq import AutoAWQForCausalLM
+from ..awq import AutoAWQForCausalLM
 from transformers import AutoTokenizer, TextStreamer
 
 quant_path = "TheBloke/zephyr-7B-beta-AWQ"

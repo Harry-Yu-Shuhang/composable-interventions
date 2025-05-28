@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
 from typing import List
-from awq.utils import fused_utils
+from ...utils import fused_utils
 from transformers.modeling_outputs import (
     BaseModelOutputWithPast,
     MoeModelOutputWithPast,
 )
-from awq.modules.fused.block import (
+from ...modules.fused.block import (
     MPTBlock,
     FalconDecoderLayer,
     LlamaLikeBlock,

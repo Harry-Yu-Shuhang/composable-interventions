@@ -1,6 +1,6 @@
 import torch
 
-from awq.modules.linear import (
+from ..modules.linear import (
     WQLinear_GEMM,
     WQLinear_GEMV,
     WQLinear_Marlin,

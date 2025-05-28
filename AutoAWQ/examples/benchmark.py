@@ -3,8 +3,8 @@ import torch
 import argparse
 import numpy as np
 import pandas as pd
-from AutoAWQ.awq import AutoAWQForCausalLM
-from awq.models.base import BaseAWQForCausalLM
+from ..awq import AutoAWQForCausalLM
+from ..awq.models.base import BaseAWQForCausalLM
 from transformers import AutoTokenizer, GenerationConfig, LogitsProcessor, LogitsProcessorList
 
 class TimeMeasuringLogitsProcessor(LogitsProcessor):
