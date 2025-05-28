@@ -79,9 +79,9 @@ class MptAWQForCausalLM(BaseAWQForCausalLM):
 
 
 from typing import List, Tuple
-from awq.utils.utils import set_module_name
-from awq.modules.fused.block import MPTBlock
-from awq.modules.fused.model import MPTModel
+from ..utils.utils import set_module_name
+from ..modules.fused.block import MPTBlock
+from ..modules.fused.model import MPTModel
 
 
 class MptFuser:
