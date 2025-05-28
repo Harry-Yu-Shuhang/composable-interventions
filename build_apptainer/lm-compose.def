@@ -52,7 +52,9 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 
     echo "📦 [4/4] 安装主项目..."
     chmod +x /opt/app/install.sh
-    /opt/conda/bin/conda run -n lm-compose bash /opt/app/install.sh
+    . /opt/conda/etc/profile.d/conda.sh
+    conda activate lm-compose
+    bash /opt/app/install.sh
 
 %runscript
     . /opt/conda/etc/profile.d/conda.sh
