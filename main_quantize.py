@@ -183,7 +183,7 @@ class LLMPruningAndValidation:
 
             # quantize model, the examples should be list of dict whose keys can only be "input_ids" and "attention_mask"
             self.model4Quant.quantize(examples)
-            # self.model4Quant.save_quantized(args.save_model)
+            self.model4Quant.save_quantized(args.save_model)
             print("Post init now.")
             self.model4Quant.post_init()
             self.model4Quant.model=self.model4Quant.model.to(self.device)
@@ -193,7 +193,7 @@ class LLMPruningAndValidation:
         elif args.quant_method=='autoawq':
             quant_config={ "zero_point": args.zero_point, "q_group_size": args.groupsize, "w_bit": args.wbits, "version": "GEMM" }
             self.model4Quant.quantize(self.tokenizer,quant_config=quant_config,calib_data="pileval")
-            # self.model4Quant.save_quantized(args.save_model)
+            self.model4Quant.save_quantized(args.save_model)
             self.model4Quant.model=self.model4Quant.model.to(self.device)
             self.model=self.model4Quant.model       
         else:
@@ -354,9 +354,9 @@ class LLMPruningAndValidation:
             print("zero_shot evaluation results")
             print(results)
 
-        #if args.save_model:
-        #    model.save_pretrained(args.save_model)
-        #    tokenizer.save_pretrained(args.save_model)
+        if args.save_model:
+           model.save_pretrained(args.save_model)
+           tokenizer.save_pretrained(args.save_model)
         return ppl_test
     def Edit(self):
         pass
