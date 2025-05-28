@@ -7,14 +7,19 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 
 %files
     main.py /opt/app/
+    main_quantize.py /opt/app/
+    run_edit.py /opt/app/
+    download.py /opt/app/
+    pyproject.toml /opt/app/
+
     AutoGPTQ /opt/app/AutoGPTQ
     AutoAWQ /opt/app/AutoAWQ
     conf /opt/app/conf
     utils /opt/app/utils
     easyeditor /opt/app/easyeditor
     sparsellm /opt/app/sparsellm
-    download.py /opt/app/
-    pyproject.toml /opt/app/
+    wmdp /opt/app/wmdp
+
     build_apptainer/install.sh /opt/app/install.sh
 
 %environment
