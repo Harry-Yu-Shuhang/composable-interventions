@@ -128,9 +128,9 @@ class LLMPruningAndValidation:
                 if hasattr(model.model, "config"):
                     config = model.model.config
                     if getattr(config, "model_parallel_style", None) is None:
-                        config.model_parallel_style = "none"
+                        config.model_parallel_style = "mtp"
                     if getattr(config, "parallelization_style", None) is None:
-                        config.parallelization_style = "none"
+                        config.parallelization_style = "mtp"
                 # ========================================
                 self.model = model.model.to(self.device)
                 self.model4Quant = model
