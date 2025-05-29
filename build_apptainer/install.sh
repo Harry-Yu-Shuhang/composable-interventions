@@ -17,5 +17,8 @@ pip install -U pip setuptools wheel
 echo "📦 安装主项目及依赖（从 pyproject.toml 控制版本）..."
 pip install --no-cache-dir --use-pep517 -e /opt/app/
 
-echo "📦 安装 AutoGPTQ..."
-pip install --no-build-isolation /opt/app/AutoGPTQ
+echo "📦 安装 AutoGPTQ（避免build-isolation）..."
+pip install --no-build-isolation -e /opt/app/AutoGPTQ
+
+echo "📦 安装 AutoAWQ（可选）..."
+pip install --no-build-isolation -e /opt/app/AutoAWQ 
