@@ -3,7 +3,7 @@ set -e
 
 echo "📦 激活 Conda 环境..."
 source /opt/conda/etc/profile.d/conda.sh
-conda activate lm-compose
+conda activate qwen-compression
 
 export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9"
 
