@@ -52,6 +52,8 @@ echo "🚀 开始 GPTQ 压缩..."
 apptainer exec --nv "$SIF_FILE" bash -c "
     source /opt/conda/etc/profile.d/conda.sh &&
     conda activate qwen-compression &&
+    export TRANSFORMERS_CACHE=/tmp/hf_cache &&
+    export HF_HOME=/tmp/hf_cache &&
     export PYTHONPATH=/opt/app &&
     python /opt/app/main_quantize.py \
         --method quant \
@@ -67,6 +69,8 @@ echo "🚀 开始 AWQ 压缩..."
 apptainer exec --nv "$SIF_FILE" bash -c "
     source /opt/conda/etc/profile.d/conda.sh &&
     conda activate qwen-compression &&
+    export TRANSFORMERS_CACHE=/tmp/hf_cache &&
+    export HF_HOME=/tmp/hf_cache &&
     export PYTHONPATH=/opt/app &&
     python /opt/app/main_quantize.py \
         --method quant \

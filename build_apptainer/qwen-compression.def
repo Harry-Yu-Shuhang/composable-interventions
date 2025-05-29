@@ -26,8 +26,8 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 
 %environment
     export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-    export TRANSFORMERS_CACHE=/opt/app/hf_cache
-    export HF_HOME=/opt/app/hf_cache
+    export TRANSFORMERS_CACHE=/tmp/hf_cache
+    export HF_HOME=/tmp/hf_cache
     export CUDA_HOME=/usr/local/cuda
     export PATH=/opt/conda/bin:$PATH
     export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
