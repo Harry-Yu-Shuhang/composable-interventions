@@ -1,6 +1,1 @@
-[submodule "AutoGPTQ"]
-	path = AutoGPTQ
-	url = https://github.com/AutoGPTQ/AutoGPTQ.git
-[submodule "AutoAWQ"]
-	path = AutoAWQ
-	url = https://github.com/casper-hansen/AutoAWQ.git
+
