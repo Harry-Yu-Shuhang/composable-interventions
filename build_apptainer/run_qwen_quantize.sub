@@ -44,8 +44,12 @@ fi
 
 # ===== 模型与输出路径 =====
 REMOTE_MODEL="Qwen/Qwen2.5-32B-Instruct"
-OUTPUT_DIR_GPTQ="/opt/app/compressed_models/qwen2.5-32b-gptq"
-OUTPUT_DIR_AWQ="/opt/app/compressed_models/qwen2.5-32b-awq"
+# 当前工作目录（即提交脚本所在目录）
+WORKDIR="$SLURM_SUBMIT_DIR"
+# 保存路径调整到工作目录
+OUTPUT_DIR_GPTQ="$WORKDIR/compressed_models/qwen2.5-32b-gptq"
+OUTPUT_DIR_AWQ="$WORKDIR/compressed_models/qwen2.5-32b-awq"
+
 
 # ===== GPTQ 压缩 =====
 echo "🚀 开始 GPTQ 压缩..."
