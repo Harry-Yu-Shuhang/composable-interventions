@@ -641,7 +641,7 @@ class BaseGPTQForCausalLM(nn.Module, PushToHubMixin):
         logger.info(f"🔧 Loaded config: {config.__class__.__name__}")
         logger.info(f"🔧 model_type = {config.model_type}")
 
-        # ✅ Patch Qwen2 config
+        # ✅ Patch Qwen2 config - 确保配置正确
         if not hasattr(config, "parallelization_style") or config.parallelization_style is None:
             logger.info("🔧 Patching missing config.parallelization_style to 'mtp'")
             config.parallelization_style = "mtp"
@@ -692,15 +692,7 @@ class BaseGPTQForCausalLM(nn.Module, PushToHubMixin):
             **merged_kwargs
         )
 
-        # ✅ 再次 patch 模型属性（防止 config 设置不被模型继承）
-        for attr in ["parallelization_style", "model_parallel_style"]:
-            if getattr(model.config, attr, None) is None:
-                logger.info(f"⚠️ config.{attr} is still None, setting to 'mtp'")
-                setattr(model.config, attr, "mtp")
-            if getattr(model, attr, None) is None:
-                logger.info(f"⚠️ model.{attr} is None, setting to config.{attr}")
-                setattr(model, attr, getattr(model.config, attr))
-
+        # 检查模型属性并确保正确设置
         model_config = model.config.to_dict()
         seq_len_keys = ["max_position_embeddings", "seq_length", "n_positions"]
         for key in seq_len_keys:
