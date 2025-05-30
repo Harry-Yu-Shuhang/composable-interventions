@@ -678,7 +678,11 @@ class BaseGPTQForCausalLM(nn.Module, PushToHubMixin):
         torch.cuda.empty_cache()
 
         merged_kwargs = {**model_init_kwargs, **cached_file_kwargs}
-        model = AutoModelForCausalLM.from_pretrained(pretrained_model_name_or_path, **merged_kwargs)
+        model = AutoModelForCausalLM.from_pretrained(
+            pretrained_model_name_or_path,
+            config=config,  # ✅ 显式使用已经 patch 的 config
+            **merged_kwargs
+        )
 
         model_config = model.config.to_dict()
         seq_len_keys = ["max_position_embeddings", "seq_length", "n_positions"]
