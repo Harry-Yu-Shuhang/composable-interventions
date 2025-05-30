@@ -45,7 +45,7 @@ fi
 # ===== 模型与输出路径 =====
 REMOTE_MODEL="Qwen/Qwen2.5-32B-Instruct"
 # ===== 模型与输出路径 =====
-LOCAL_MODEL="/mnt/fast/nobackup/scratch4weeks/ly0008/ysh/composable-interventions/models/Qwen2.5-32B-Instruct"
+# LOCAL_MODEL="/mnt/fast/nobackup/scratch4weeks/ly0008/ysh/composable-interventions/models/Qwen2.5-32B-Instruct"
 WORKDIR="$SLURM_SUBMIT_DIR"
 OUTPUT_DIR_GPTQ="$WORKDIR/compressed_models/qwen2.5-32b-gptq"
 OUTPUT_DIR_AWQ="$WORKDIR/compressed_models/qwen2.5-32b-awq"
@@ -61,7 +61,7 @@ apptainer exec --nv "$SIF_FILE" bash -c "
     python /opt/app/main_quantize.py \
         --method quant \
         --quant_method autogptq \
-        --model '$LOCAL_MODEL' \
+        --model '$REMOTE_MODEL' \
         --save_model '$OUTPUT_DIR_GPTQ' \
         --wbits 4 \
         --groupsize 128
@@ -78,7 +78,7 @@ apptainer exec --nv "$SIF_FILE" bash -c "
     python /opt/app/main_quantize.py \
         --method quant \
         --quant_method autoawq \
-        --model '$LOCAL_MODEL' \
+        --model '$REMOTE_MODEL' \
         --save_model '$OUTPUT_DIR_AWQ' \
         --wbits 4 \
         --groupsize 128 \
