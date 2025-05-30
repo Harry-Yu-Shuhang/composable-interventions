@@ -1,0 +1,23 @@
+#!/bin/bash
+#SBATCH --partition=a100
+#SBATCH --job-name=download_models
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --time=02:00:00
+#SBATCH --mem=32G
+#SBATCH --output=logs/download_models/download_models.out
+#SBATCH --error=logs/download_models/download_models.err
+
+# ===== 设置环境 =====
+echo "🔧 当前工作目录: $(pwd)"
+cd "$SLURM_SUBMIT_DIR" || exit 1
+
+# ===== 激活环境（根据你本地环境修改）=====
+source ~/.bashrc
+conda activate base  # 或你安装 huggingface_hub 的环境
+
+# ===== 执行下载脚本 =====
+echo "🚀 开始下载模型: $(date)"
+python download.py
+echo "✅ 下载完成: $(date)"
