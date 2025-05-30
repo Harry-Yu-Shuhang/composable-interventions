@@ -44,12 +44,11 @@ fi
 
 # ===== 模型与输出路径 =====
 REMOTE_MODEL="Qwen/Qwen2.5-32B-Instruct"
-# 当前工作目录（即提交脚本所在目录）
+# ===== 模型与输出路径 =====
+LOCAL_MODEL="/mnt/fast/nobackup/scratch4weeks/ly0008/ysh/composable-interventions/models/Qwen2.5-32B-Instruct"
 WORKDIR="$SLURM_SUBMIT_DIR"
-# 保存路径调整到工作目录
 OUTPUT_DIR_GPTQ="$WORKDIR/compressed_models/qwen2.5-32b-gptq"
 OUTPUT_DIR_AWQ="$WORKDIR/compressed_models/qwen2.5-32b-awq"
-
 
 # ===== GPTQ 压缩 =====
 echo "🚀 开始 GPTQ 压缩..."
@@ -62,7 +61,7 @@ apptainer exec --nv "$SIF_FILE" bash -c "
     python /opt/app/main_quantize.py \
         --method quant \
         --quant_method autogptq \
-        --model '$REMOTE_MODEL' \
+        --model '$LOCAL_MODEL' \
         --save_model '$OUTPUT_DIR_GPTQ' \
         --wbits 4 \
         --groupsize 128
@@ -79,11 +78,9 @@ apptainer exec --nv "$SIF_FILE" bash -c "
     python /opt/app/main_quantize.py \
         --method quant \
         --quant_method autoawq \
-        --model '$REMOTE_MODEL' \
+        --model '$LOCAL_MODEL' \
         --save_model '$OUTPUT_DIR_AWQ' \
         --wbits 4 \
         --groupsize 128 \
         --zero_point
 "
-
-echo "✅ 所有压缩完成: $(date)"
