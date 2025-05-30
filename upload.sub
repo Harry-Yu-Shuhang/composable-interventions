@@ -15,48 +15,58 @@ echo "📂 当前目录: $(pwd)"
 
 # ====== 参数设置 ======
 MODEL_DIR="/mnt/fast/nobackup/scratch4weeks/ly0008/ysh/composable-interventions/models/Qwen2.5-32B-Instruct"
-KEY_PATH="/vol/research/ly0008/ysh/Shuhang_Private_Key_1"
+HF_USERNAME="HarryYSH"
+REPO_NAME="Qwen2.5-32B-Instruct"
 BRANCH_NAME="main"
 
-# ====== Step 1: 切换目录 ======
+# 检查 token 是否设置
+if [[ -z "${HF_TOKEN:-}" ]]; then
+  echo "❌ 环境变量 HF_TOKEN 未设置，请 export HF_TOKEN=xxx 后再提交任务"
+  exit 1
+fi
+
+# ====== Step 1: 进入模型目录 ======
 echo "📁 [1/6] 进入模型目录: $MODEL_DIR"
 cd "$MODEL_DIR" || { echo "❌ 无法进入模型目录"; exit 1; }
 
-# ====== Step 2: 初始化 Git 仓库（如未初始化） ======
+# ====== Step 2: 初始化 Git 仓库 ======
 if [ ! -d ".git" ]; then
     echo "🔧 [2/6] 初始化 Git 仓库..."
     git init
-    git remote add origin git@huggingface.co:HarryYSH/Qwen2.5-32B-Instruct
+    git remote add origin https://huggingface.co/${HF_USERNAME}/${REPO_NAME}
 else
     echo "✔️ [2/6] Git 仓库已存在，跳过初始化"
 fi
 
-# ====== Step 3: 初始化 Git LFS 并跟踪大模型文件 ======
-echo "📦 [3/6] 初始化 Git LFS..."
-GIT_SSH_COMMAND="ssh -i $KEY_PATH" git lfs install
-echo "*.safetensors filter=lfs diff=lfs merge=lfs -text" > .gitattributes
-GIT_SSH_COMMAND="ssh -i $KEY_PATH" git add .gitattributes
+# ====== Step 3: 初始化 Git LFS ======
+if ! git lfs ls-files | grep -q safetensors; then
+    echo "📦 [3/6] 初始化 Git LFS..."
+    git lfs install
+    echo "*.safetensors filter=lfs diff=lfs merge=lfs -text" > .gitattributes
+    git add .gitattributes
+fi
 
 # ====== Step 4: 添加元数据文件 ======
 echo "🗂️ [4/6] 添加元数据文件..."
-GIT_SSH_COMMAND="ssh -i $KEY_PATH" git add \
-    config.json tokenizer.json tokenizer_config.json merges.txt \
-    vocab.json generation_config.json README.md LICENSE \
-    model.safetensors.index.json
+git add config.json tokenizer.json tokenizer_config.json merges.txt \
+        vocab.json generation_config.json README.md LICENSE \
+        model.safetensors.index.json || true
 
-GIT_SSH_COMMAND="ssh -i $KEY_PATH" git commit -m "🧾 Add model config and metadata" || echo "⚠️ 无需提交 config"
+git commit -m "🧾 Add model config and metadata" || echo "⚠️ 无需提交 config"
 
-# ====== Step 5: 添加模型权重文件（可能较慢）======
+# ====== Step 5: 添加模型权重文件（.safetensors）======
 echo "📦 [5/6] 添加模型参数文件（.safetensors）..."
-GIT_SSH_COMMAND="ssh -i $KEY_PATH" git add *.safetensors
+git add *.safetensors || true
+git commit -m "📦 Upload model weights via Git LFS" || echo "⚠️ 无需提交权重"
 
-GIT_SSH_COMMAND="ssh -i $KEY_PATH" git commit -m "📦 Upload model weights via Git LFS" || echo "⚠️ 无需提交权重"
-
-# 强制使用 main 分支（避免 master 错误）
-GIT_SSH_COMMAND="ssh -i $KEY_PATH" git branch -M "$BRANCH_NAME"
+git branch -M "$BRANCH_NAME"
 
 # ====== Step 6: 推送到 HuggingFace ======
 echo "🚀 [6/6] 推送到 HuggingFace 仓库..."
-GIT_SSH_COMMAND="ssh -i $KEY_PATH" git push -u origin "$BRANCH_NAME"
+# 设置 HTTPS 凭证（写入到 .netrc）
+echo -e "machine huggingface.co\nlogin ${HF_USERNAME}\npassword ${HF_TOKEN}" > ~/.netrc
+chmod 600 ~/.netrc
+
+git push -u origin "$BRANCH_NAME"
 
 echo "✅ [DONE] 模型上传完成: $(date)"
