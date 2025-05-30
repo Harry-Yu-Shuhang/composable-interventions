@@ -1,0 +1,35 @@
+#!/bin/bash
+#SBATCH --partition=debug
+#SBATCH --job-name=upload_qwen_hf
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=00:10:00
+#SBATCH --output=logs/upload_model/upload_output.log
+#SBATCH --error=logs/upload_model/upload_output.err
+
+set -e
+
+echo "📦 上传任务开始: $(date)"
+
+# 1️⃣ 设置路径
+MODEL_DIR="/mnt/fast/nobackup/scratch4weeks/ly0008/ysh/composable-interventions/models/Qwen2.5-32B-Instruct"
+KEY_PATH="/vol/research/ly0008/ysh/Shuhang_Private_Key_1"
+BRANCH_NAME="main"
+
+# 2️⃣ 进入模型目录
+cd "$MODEL_DIR"
+
+# 3️⃣ 初始化 Git（如果还没 init）
+if [ ! -d ".git" ]; then
+    git init
+    git remote add origin git@huggingface.co:HarryYSH/Qwen2.5-32B-Instruct
+fi
+
+# 4️⃣ 使用 SSH 私钥执行 Git 操作
+GIT_SSH_COMMAND="ssh -i $KEY_PATH" git add .
+GIT_SSH_COMMAND="ssh -i $KEY_PATH" git commit -m "🔧 Update config and push model"
+GIT_SSH_COMMAND="ssh -i $KEY_PATH" git branch -M "$BRANCH_NAME"
+GIT_SSH_COMMAND="ssh -i $KEY_PATH" git push -u origin "$BRANCH_NAME"
+
+echo "✅ 模型上传成功: $(date)"
