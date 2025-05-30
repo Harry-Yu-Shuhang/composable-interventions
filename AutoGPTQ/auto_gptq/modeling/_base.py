@@ -597,10 +597,18 @@ class BaseGPTQForCausalLM(nn.Module, PushToHubMixin):
         torch_dtype: torch.dtype = torch.float16,
         **model_init_kwargs,
     ):
-        """load un-quantized pretrained model to cpu"""
         import logging
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
+
+        # 🧩 加入 transformers 补丁（避免 TypeError: 'NoneType' is not iterable）
+        try:
+            from transformers import modeling_utils
+            if not hasattr(modeling_utils, "ALL_PARALLEL_STYLES") or modeling_utils.ALL_PARALLEL_STYLES is None:
+                logger.warning("⚠️ Patch: setting modeling_utils.ALL_PARALLEL_STYLES manually")
+                modeling_utils.ALL_PARALLEL_STYLES = ["tp", "none", "colwise", "rowwise"]
+        except Exception as e:
+            logger.warning(f"⚠️ Patch failed: {e}")
 
         if not torch.cuda.is_available():
             raise EnvironmentError("Load pretrained model to do quantization requires CUDA available.")
@@ -612,7 +620,7 @@ class BaseGPTQForCausalLM(nn.Module, PushToHubMixin):
         torch.nn.init.uniform_ = skip
         torch.nn.init.normal_ = skip
 
-        # Hugging Face Hub 相关参数
+        # Hugging Face Hub 参数
         cache_dir = model_init_kwargs.pop("cache_dir", None)
         force_download = model_init_kwargs.pop("force_download", False)
         resume_download = model_init_kwargs.pop("resume_download", False)
@@ -684,7 +692,7 @@ class BaseGPTQForCausalLM(nn.Module, PushToHubMixin):
 
         torch.cuda.empty_cache()
 
-        # 最终加载模型
+        # ✅ 加载最终模型（现在已补丁，避免 TypeError）
         merged_kwargs = {**model_init_kwargs, **cached_file_kwargs}
         model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path,
@@ -692,7 +700,7 @@ class BaseGPTQForCausalLM(nn.Module, PushToHubMixin):
             **merged_kwargs
         )
 
-        # 检查模型属性并确保正确设置
+        # 获取模型 seqlen
         model_config = model.config.to_dict()
         seq_len_keys = ["max_position_embeddings", "seq_length", "n_positions"]
         for key in seq_len_keys:
@@ -707,6 +715,7 @@ class BaseGPTQForCausalLM(nn.Module, PushToHubMixin):
 
         logger.info("✅ Model loaded and patched successfully.")
         return cls(model, False, quantize_config)
+
 
     @classmethod
     def from_quantized(
