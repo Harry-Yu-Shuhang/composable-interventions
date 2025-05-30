@@ -19,31 +19,44 @@ KEY_PATH="/vol/research/ly0008/ysh/Shuhang_Private_Key_1"
 BRANCH_NAME="main"
 
 # ====== Step 1: 切换目录 ======
-echo "📁 [1/5] 进入模型目录: $MODEL_DIR"
+echo "📁 [1/6] 进入模型目录: $MODEL_DIR"
 cd "$MODEL_DIR" || { echo "❌ 无法进入模型目录"; exit 1; }
 
-# ====== Step 2: 初始化 Git 仓库（如果还没 init）======
+# ====== Step 2: 初始化 Git 仓库（如未初始化） ======
 if [ ! -d ".git" ]; then
-    echo "🔧 [2/5] 初始化 Git 仓库..."
+    echo "🔧 [2/6] 初始化 Git 仓库..."
     git init
     git remote add origin git@huggingface.co:HarryYSH/Qwen2.5-32B-Instruct
 else
-    echo "✔️ [2/5] Git 仓库已存在，跳过初始化"
+    echo "✔️ [2/6] Git 仓库已存在，跳过初始化"
 fi
 
-# ====== Step 3: 添加更改 ======
-echo "➕ [3/5] 添加所有文件..."
-GIT_SSH_COMMAND="ssh -i $KEY_PATH" git add .
+# ====== Step 3: 初始化 Git LFS 并跟踪大模型文件 ======
+echo "📦 [3/6] 初始化 Git LFS..."
+GIT_SSH_COMMAND="ssh -i $KEY_PATH" git lfs install
+echo "*.safetensors filter=lfs diff=lfs merge=lfs -text" > .gitattributes
+GIT_SSH_COMMAND="ssh -i $KEY_PATH" git add .gitattributes
 
-# ====== Step 4: 提交更改 ======
-echo "📝 [4/5] 提交更改..."
-GIT_SSH_COMMAND="ssh -i $KEY_PATH" git commit -m "🔧 Update config and push model" || echo "⚠️ 无需提交，可能无更改"
+# ====== Step 4: 添加元数据文件 ======
+echo "🗂️ [4/6] 添加元数据文件..."
+GIT_SSH_COMMAND="ssh -i $KEY_PATH" git add \
+    config.json tokenizer.json tokenizer_config.json merges.txt \
+    vocab.json generation_config.json README.md LICENSE \
+    model.safetensors.index.json
+
+GIT_SSH_COMMAND="ssh -i $KEY_PATH" git commit -m "🧾 Add model config and metadata" || echo "⚠️ 无需提交 config"
+
+# ====== Step 5: 添加模型权重文件（可能较慢）======
+echo "📦 [5/6] 添加模型参数文件（.safetensors）..."
+GIT_SSH_COMMAND="ssh -i $KEY_PATH" git add *.safetensors
+
+GIT_SSH_COMMAND="ssh -i $KEY_PATH" git commit -m "📦 Upload model weights via Git LFS" || echo "⚠️ 无需提交权重"
 
 # 强制使用 main 分支（避免 master 错误）
 GIT_SSH_COMMAND="ssh -i $KEY_PATH" git branch -M "$BRANCH_NAME"
 
-# ====== Step 5: 推送到 HuggingFace ======
-echo "🚀 [5/5] 推送到 HuggingFace 仓库..."
+# ====== Step 6: 推送到 HuggingFace ======
+echo "🚀 [6/6] 推送到 HuggingFace 仓库..."
 GIT_SSH_COMMAND="ssh -i $KEY_PATH" git push -u origin "$BRANCH_NAME"
 
 echo "✅ [DONE] 模型上传完成: $(date)"
