@@ -635,6 +635,13 @@ class BaseGPTQForCausalLM(nn.Module, PushToHubMixin):
         config = AutoConfig.from_pretrained(
             pretrained_model_name_or_path, trust_remote_code=True, **cached_file_kwargs
         )
+
+        # ✅ Patch Qwen2 config BEFORE model creation
+        if not hasattr(config, "parallelization_style") or config.parallelization_style is None:
+            config.parallelization_style = "mtp"
+        if not hasattr(config, "model_parallel_style") or config.model_parallel_style is None:
+            config.model_parallel_style = "mtp"
+
         if config.model_type not in SUPPORTED_MODELS:
             raise TypeError(f"{config.model_type} isn't supported yet.")
 
@@ -672,11 +679,6 @@ class BaseGPTQForCausalLM(nn.Module, PushToHubMixin):
 
         merged_kwargs = {**model_init_kwargs, **cached_file_kwargs}
         model = AutoModelForCausalLM.from_pretrained(pretrained_model_name_or_path, **merged_kwargs)
-        # ✅ Patch Qwen2 bug
-        if not hasattr(model.config, "parallelization_style") or model.config.parallelization_style is None:
-            model.config.parallelization_style = "mtp"
-        if not hasattr(model.config, "model_parallel_style") or model.config.model_parallel_style is None:
-            model.config.model_parallel_style = "mtp"
 
         model_config = model.config.to_dict()
         seq_len_keys = ["max_position_embeddings", "seq_length", "n_positions"]
