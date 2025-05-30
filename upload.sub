@@ -4,32 +4,46 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --time=00:30:00
+#SBATCH --time=04:00:00
 #SBATCH --output=logs/upload_model/upload_output.log
 #SBATCH --error=logs/upload_model/upload_output.err
 
-set -e
+set -euo pipefail
 
-echo "📦 上传任务开始: $(date)"
+echo "📦 [START] 模型上传任务启动: $(date)"
+echo "📂 当前目录: $(pwd)"
 
-# 1️⃣ 设置路径
+# ====== 参数设置 ======
 MODEL_DIR="/mnt/fast/nobackup/scratch4weeks/ly0008/ysh/composable-interventions/models/Qwen2.5-32B-Instruct"
 KEY_PATH="/vol/research/ly0008/ysh/Shuhang_Private_Key_1"
 BRANCH_NAME="main"
 
-# 2️⃣ 进入模型目录
-cd "$MODEL_DIR"
+# ====== Step 1: 切换目录 ======
+echo "📁 [1/5] 进入模型目录: $MODEL_DIR"
+cd "$MODEL_DIR" || { echo "❌ 无法进入模型目录"; exit 1; }
 
-# 3️⃣ 初始化 Git（如果还没 init）
+# ====== Step 2: 初始化 Git 仓库（如果还没 init）======
 if [ ! -d ".git" ]; then
+    echo "🔧 [2/5] 初始化 Git 仓库..."
     git init
     git remote add origin git@huggingface.co:HarryYSH/Qwen2.5-32B-Instruct
+else
+    echo "✔️ [2/5] Git 仓库已存在，跳过初始化"
 fi
 
-# 4️⃣ 使用 SSH 私钥执行 Git 操作
+# ====== Step 3: 添加更改 ======
+echo "➕ [3/5] 添加所有文件..."
 GIT_SSH_COMMAND="ssh -i $KEY_PATH" git add .
-GIT_SSH_COMMAND="ssh -i $KEY_PATH" git commit -m "🔧 Update config and push model"
+
+# ====== Step 4: 提交更改 ======
+echo "📝 [4/5] 提交更改..."
+GIT_SSH_COMMAND="ssh -i $KEY_PATH" git commit -m "🔧 Update config and push model" || echo "⚠️ 无需提交，可能无更改"
+
+# 强制使用 main 分支（避免 master 错误）
 GIT_SSH_COMMAND="ssh -i $KEY_PATH" git branch -M "$BRANCH_NAME"
+
+# ====== Step 5: 推送到 HuggingFace ======
+echo "🚀 [5/5] 推送到 HuggingFace 仓库..."
 GIT_SSH_COMMAND="ssh -i $KEY_PATH" git push -u origin "$BRANCH_NAME"
 
-echo "✅ 模型上传成功: $(date)"
+echo "✅ [DONE] 模型上传完成: $(date)"
