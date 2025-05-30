@@ -598,6 +598,9 @@ class BaseGPTQForCausalLM(nn.Module, PushToHubMixin):
         **model_init_kwargs,
     ):
         """load un-quantized pretrained model to cpu"""
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.INFO)
 
         if not torch.cuda.is_available():
             raise EnvironmentError("Load pretrained model to do quantization requires CUDA available.")
@@ -609,7 +612,7 @@ class BaseGPTQForCausalLM(nn.Module, PushToHubMixin):
         torch.nn.init.uniform_ = skip
         torch.nn.init.normal_ = skip
 
-        # Parameters related to loading from Hugging Face Hub
+        # Hugging Face Hub 相关参数
         cache_dir = model_init_kwargs.pop("cache_dir", None)
         force_download = model_init_kwargs.pop("force_download", False)
         resume_download = model_init_kwargs.pop("resume_download", False)
@@ -635,25 +638,30 @@ class BaseGPTQForCausalLM(nn.Module, PushToHubMixin):
         config = AutoConfig.from_pretrained(
             pretrained_model_name_or_path, trust_remote_code=True, **cached_file_kwargs
         )
+        logger.info(f"🔧 Loaded config: {config.__class__.__name__}")
+        logger.info(f"🔧 model_type = {config.model_type}")
 
-        # ✅ Patch Qwen2 config BEFORE model creation
+        # ✅ Patch Qwen2 config
         if not hasattr(config, "parallelization_style") or config.parallelization_style is None:
+            logger.info("🔧 Patching missing config.parallelization_style to 'mtp'")
             config.parallelization_style = "mtp"
         if not hasattr(config, "model_parallel_style") or config.model_parallel_style is None:
+            logger.info("🔧 Patching missing config.model_parallel_style to 'mtp'")
             config.model_parallel_style = "mtp"
 
         if config.model_type not in SUPPORTED_MODELS:
             raise TypeError(f"{config.model_type} isn't supported yet.")
 
-        # enforce some values despite user specified
         model_init_kwargs["torch_dtype"] = torch_dtype
         model_init_kwargs["trust_remote_code"] = trust_remote_code
+
         if max_memory:
             if "disk" in max_memory:
                 raise NotImplementedError("disk offload not support yet.")
             with accelerate.init_empty_weights():
                 model = AutoModelForCausalLM.from_config(config, trust_remote_code=True)
             model.tie_weights()
+            logger.info("📦 Created model in empty weights mode to infer memory")
 
             max_memory = accelerate.utils.get_balanced_memory(
                 model,
@@ -669,7 +677,6 @@ class BaseGPTQForCausalLM(nn.Module, PushToHubMixin):
                 dtype=model_init_kwargs["torch_dtype"],
             )
             model_init_kwargs["low_cpu_mem_usage"] = True
-
             del model
         else:
             model_init_kwargs["device_map"] = None
@@ -677,25 +684,36 @@ class BaseGPTQForCausalLM(nn.Module, PushToHubMixin):
 
         torch.cuda.empty_cache()
 
+        # 最终加载模型
         merged_kwargs = {**model_init_kwargs, **cached_file_kwargs}
         model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path,
-            config=config,  # ✅ 显式使用已经 patch 的 config
+            config=config,
             **merged_kwargs
         )
 
+        # ✅ 再次 patch 模型属性（防止 config 设置不被模型继承）
+        for attr in ["parallelization_style", "model_parallel_style"]:
+            if getattr(model.config, attr, None) is None:
+                logger.info(f"⚠️ config.{attr} is still None, setting to 'mtp'")
+                setattr(model.config, attr, "mtp")
+            if getattr(model, attr, None) is None:
+                logger.info(f"⚠️ model.{attr} is None, setting to config.{attr}")
+                setattr(model, attr, getattr(model.config, attr))
+
         model_config = model.config.to_dict()
         seq_len_keys = ["max_position_embeddings", "seq_length", "n_positions"]
-        if any(k in model_config for k in seq_len_keys):
-            for key in seq_len_keys:
-                if key in model_config:
-                    model.seqlen = model_config[key]
-                    break
+        for key in seq_len_keys:
+            if key in model_config:
+                model.seqlen = model_config[key]
+                break
         else:
             logger.warning("can't get model's sequence length from model config, will set to 4096.")
             model.seqlen = 4096
+
         model.eval()
 
+        logger.info("✅ Model loaded and patched successfully.")
         return cls(model, False, quantize_config)
 
     @classmethod
