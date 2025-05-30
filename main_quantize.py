@@ -123,15 +123,6 @@ class LLMPruningAndValidation:
                 )
                 # load un-quantized model, by default, the model will always be loaded into CPU memory
                 model = AutoGPTQForCausalLM.from_pretrained(self.args.model, quantize_config, trust_remote_code=True)
-
-                # ==== 🔧 兼容 Qwen2 未设置的并行参数 ====
-                if hasattr(model.model, "config"):
-                    config = model.model.config
-                    if getattr(config, "model_parallel_style", None) is None:
-                        config.model_parallel_style = "mtp"
-                    if getattr(config, "parallelization_style", None) is None:
-                        config.parallelization_style = "mtp"
-                # ========================================
                 self.model = model.model.to(self.device)
                 self.model4Quant = model
 
