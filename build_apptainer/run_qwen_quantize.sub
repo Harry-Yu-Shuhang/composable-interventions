@@ -6,7 +6,7 @@
 #SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH --time=4:00:00
-#SBATCH --mem=128G
+#SBATCH --mem=32G
 #SBATCH --output=logs/qwen2.5-32b-instruct/output_qwen_quant.log
 #SBATCH --error=logs/qwen2.5-32b-instruct/error_qwen_quant.log
 
@@ -68,19 +68,19 @@ apptainer exec --nv "$SIF_FILE" bash -c "
 "
 
 # ===== AWQ 压缩 =====
-echo "🚀 开始 AWQ 压缩..."
-apptainer exec --nv "$SIF_FILE" bash -c "
-    source /opt/conda/etc/profile.d/conda.sh &&
-    conda activate qwen-compression &&
-    export TRANSFORMERS_CACHE=/tmp/hf_cache &&
-    export HF_HOME=/tmp/hf_cache &&
-    export PYTHONPATH=/opt/app &&
-    python /opt/app/main_quantize.py \
-        --method quant \
-        --quant_method autoawq \
-        --model '$LOCAL_MODEL' \
-        --save_model '$OUTPUT_DIR_AWQ' \
-        --wbits 4 \
-        --groupsize 128 \
-        --zero_point
-"
+# echo "🚀 开始 AWQ 压缩..."
+# apptainer exec --nv "$SIF_FILE" bash -c "
+#     source /opt/conda/etc/profile.d/conda.sh &&
+#     conda activate qwen-compression &&
+#     export TRANSFORMERS_CACHE=/tmp/hf_cache &&
+#     export HF_HOME=/tmp/hf_cache &&
+#     export PYTHONPATH=/opt/app &&
+#     python /opt/app/main_quantize.py \
+#         --method quant \
+#         --quant_method autoawq \
+#         --model '$LOCAL_MODEL' \
+#         --save_model '$OUTPUT_DIR_AWQ' \
+#         --wbits 4 \
+#         --groupsize 128 \
+#         --zero_point
+# "
